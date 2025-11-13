@@ -444,7 +444,6 @@ const InsuranceNavigator = () => {
         <div className="fixed inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center z-50">
           <div className="text-white mb-6 text-center">
             <h2 className="text-xl font-semibold mb-2">{t('qr_scanner')}</h2>
-            <p
             <p className="text-sm opacity-75">{t('scan_instruction')}</p>
           </div>
           <div className="relative w-64 h-64 border-4 border-blue-500 rounded-lg">
