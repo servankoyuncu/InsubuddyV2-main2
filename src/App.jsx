@@ -3,27 +3,18 @@ import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upl
 
 const InsuranceNavigator = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [showLifeEvent, setShowLifeEvent] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState('de');
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [showBiometricSetup, setShowBiometricSetup] = useState(false);
+  const [showAddPolicy, setShowAddPolicy] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState('all');
   const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState(null);
   
-  const [notificationPreferences, setNotificationPreferences] = useState({
-    policy_updates: true,
-    life_events: true,
-    savings_opportunities: true,
-    renewal_reminders: true,
-    document_uploads: false,
-    security_alerts: true
-  });
-
   const [notifications, setNotifications] = useState([
     { id: 1, type: 'warning', title_key: 'notif_policy_update', time: '2 Std.', read: false },
     { id: 2, type: 'info', title_key: 'notif_document_uploaded', time: '5 Std.', read: false },
@@ -43,8 +34,6 @@ const InsuranceNavigator = () => {
       secured_values: 'Gesicherte Werte',
       recommendations: 'Empfehlungen',
       action_required: 'Handlungsbedarf',
-      life_events: 'Lebensereignisse',
-      add_event: 'Ereignis hinzufügen',
       policy_overview: 'Policen-Übersicht',
       annual_premium: 'Jährliche Gesamtprämie',
       check_needed: 'Prüfung nötig',
@@ -53,40 +42,8 @@ const InsuranceNavigator = () => {
       premium: 'Prämie',
       digital_vault: 'Digitaler Tresor',
       secured_values_proof: 'Gesicherte Werte mit Nachweis',
-      add_valuable: 'Neuen Wertgegenstand erfassen',
-      purchase_date: 'Kaufdatum',
-      photo_available: 'Foto vorhanden',
-      receipt_saved: 'Beleg gesichert',
-      personal_data: 'Persönliche Daten',
-      birth_date: 'Geburtsdatum',
-      address: 'Adresse',
-      phone: 'Telefon',
-      edit_data: 'Daten bearbeiten',
-      settings: 'Einstellungen',
-      dark_mode: 'Dark Mode',
-      dark_mode_desc: 'Dunkles Design aktivieren',
-      notifications: 'Benachrichtigungen',
-      notifications_desc: 'Push-Benachrichtigungen',
-      manage_settings: 'Einstellungen verwalten',
-      security_privacy: 'Sicherheit & Datenschutz',
-      change_password: 'Passwort ändern',
-      two_factor: 'Zwei-Faktor-Auth',
-      privacy_settings: 'Datenschutz',
-      logout: 'Abmelden',
       language: 'Sprache',
       cancel: 'Abbrechen',
-      moving: 'Umzug',
-      marriage: 'Heirat',
-      birth: 'Geburt',
-      new_car: 'Neues Auto',
-      job_change: 'Jobwechsel',
-      house_purchase: 'Hauskauf',
-      divorce: 'Scheidung',
-      retirement: 'Pensionierung',
-      notif_policy_update: 'Hausrat anpassen',
-      notif_document_uploaded: 'Dokument hochgeladen',
-      notif_savings_found: 'CHF 420 Sparpotenzial',
-      notif_renewal_reminder: 'Auto läuft in 30 Tagen ab',
       mark_all_read: 'Alle als gelesen',
       no_notifications: 'Keine Benachrichtigungen',
       household: 'Hausrat',
@@ -100,28 +57,33 @@ const InsuranceNavigator = () => {
       export_data: 'Daten exportieren',
       export_policies: 'Policen PDF',
       export_vault: 'Tresor Excel',
-      export_all: 'Alles (ZIP)',
+      export_all: 'Alles',
       scan_receipt: 'Beleg scannen',
       qr_scanner: 'QR-Scanner',
-      scan_instruction: 'QR-Code im Rahmen positionieren',
+      scan_instruction: 'QR-Code positionieren',
       biometric_auth: 'Biometrie',
-      biometric_desc: 'Face ID / Fingerabdruck',
-      enable_biometric: 'Aktivieren',
+      biometric_desc: 'Face ID aktivieren',
       biometric_setup_title: 'Biometrie einrichten',
-      biometric_setup_desc: 'Mit Face ID oder Touch ID schützen',
+      biometric_setup_desc: 'Mit Face ID schützen',
       setup_now: 'Jetzt einrichten',
-      notification_settings: 'Benachrichtigungen',
-      policy_updates_notif: 'Policen-Updates',
-      life_events_notif: 'Lebensereignisse',
-      savings_opportunities_notif: 'Sparmöglichkeiten',
-      renewal_reminders_notif: 'Verlängerungen',
-      document_uploads_notif: 'Dokumente',
-      security_alerts_notif: 'Sicherheit',
-      save: 'Speichern'
+      save: 'Speichern',
+      add_policy: 'Police hinzufügen',
+      upload_policy_pdf: 'Police hochladen',
+      select_pdf: 'PDF auswählen',
+      or_drag_drop: 'oder hierher ziehen',
+      policy_name: 'Policen-Name',
+      policy_company: 'Versicherung',
+      policy_type: 'Typ',
+      select_type: 'Typ auswählen',
+      notifications: 'Benachrichtigungen',
+      notif_policy_update: 'Hausrat anpassen',
+      notif_document_uploaded: 'Dokument hochgeladen',
+      notif_savings_found: 'CHF 420 Sparpotenzial',
+      notif_renewal_reminder: 'Auto läuft ab'
     },
     en: {
       app_title: 'Insurance Assistant',
-      app_subtitle: 'Your intelligent life navigator',
+      app_subtitle: 'Your intelligent navigator',
       tab_overview: 'Overview',
       tab_policies: 'Policies',
       tab_vault: 'Vault',
@@ -130,50 +92,16 @@ const InsuranceNavigator = () => {
       secured_values: 'Secured Values',
       recommendations: 'Recommendations',
       action_required: 'Action Required',
-      life_events: 'Life Events',
-      add_event: 'Add Event',
       policy_overview: 'Policy Overview',
-      annual_premium: 'Total Annual Premium',
+      annual_premium: 'Annual Premium',
       check_needed: 'Check Needed',
       optimal: 'Optimal',
       coverage: 'Coverage',
       premium: 'Premium',
       digital_vault: 'Digital Vault',
       secured_values_proof: 'Secured Values',
-      add_valuable: 'Add Item',
-      purchase_date: 'Purchase Date',
-      photo_available: 'Photo Available',
-      receipt_saved: 'Receipt Saved',
-      personal_data: 'Personal Data',
-      birth_date: 'Birth Date',
-      address: 'Address',
-      phone: 'Phone',
-      edit_data: 'Edit Data',
-      settings: 'Settings',
-      dark_mode: 'Dark Mode',
-      dark_mode_desc: 'Enable dark design',
-      notifications: 'Notifications',
-      notifications_desc: 'Push notifications',
-      manage_settings: 'Manage Settings',
-      security_privacy: 'Security & Privacy',
-      change_password: 'Change Password',
-      two_factor: 'Two-Factor Auth',
-      privacy_settings: 'Privacy',
-      logout: 'Logout',
       language: 'Language',
       cancel: 'Cancel',
-      moving: 'Moving',
-      marriage: 'Marriage',
-      birth: 'Birth',
-      new_car: 'New Car',
-      job_change: 'Job Change',
-      house_purchase: 'House Purchase',
-      divorce: 'Divorce',
-      retirement: 'Retirement',
-      notif_policy_update: 'Update household insurance',
-      notif_document_uploaded: 'Document uploaded',
-      notif_savings_found: 'CHF 420 savings found',
-      notif_renewal_reminder: 'Car insurance expires in 30 days',
       mark_all_read: 'Mark all read',
       no_notifications: 'No notifications',
       household: 'Household',
@@ -187,24 +115,29 @@ const InsuranceNavigator = () => {
       export_data: 'Export Data',
       export_policies: 'Policies PDF',
       export_vault: 'Vault Excel',
-      export_all: 'All (ZIP)',
+      export_all: 'All',
       scan_receipt: 'Scan Receipt',
       qr_scanner: 'QR Scanner',
-      scan_instruction: 'Position QR-code in frame',
+      scan_instruction: 'Position QR-code',
       biometric_auth: 'Biometric',
-      biometric_desc: 'Face ID / Fingerprint',
-      enable_biometric: 'Enable',
+      biometric_desc: 'Enable Face ID',
       biometric_setup_title: 'Setup Biometric',
-      biometric_setup_desc: 'Protect with Face ID or Touch ID',
+      biometric_setup_desc: 'Protect with Face ID',
       setup_now: 'Setup Now',
-      notification_settings: 'Notifications',
-      policy_updates_notif: 'Policy Updates',
-      life_events_notif: 'Life Events',
-      savings_opportunities_notif: 'Savings',
-      renewal_reminders_notif: 'Renewals',
-      document_uploads_notif: 'Documents',
-      security_alerts_notif: 'Security',
-      save: 'Save'
+      save: 'Save',
+      add_policy: 'Add Policy',
+      upload_policy_pdf: 'Upload Policy',
+      select_pdf: 'Select PDF',
+      or_drag_drop: 'or drag here',
+      policy_name: 'Policy Name',
+      policy_company: 'Company',
+      policy_type: 'Type',
+      select_type: 'Select type',
+      notifications: 'Notifications',
+      notif_policy_update: 'Update insurance',
+      notif_document_uploaded: 'Document uploaded',
+      notif_savings_found: 'CHF 420 savings',
+      notif_renewal_reminder: 'Car expires soon'
     }
   };
 
@@ -215,31 +148,24 @@ const InsuranceNavigator = () => {
     { code: 'en', name: 'English', flag: '🇬🇧' }
   ];
 
-  const lifeEvents = [
-    { id: 1, event: t('moving'), date: '15.03.2025', status: 'pending' },
-    { id: 2, event: t('new_car'), date: '01.02.2025', status: 'completed' }
-  ];
-
   const policySuggestions = [
     { 
       type: 'critical', 
       title: 'Hausrat anpassen', 
       description: 'Deckungssumme zu niedrig',
-      action: 'CHF 50k auf CHF 75k erhöhen',
-      savings: null
+      action: 'CHF 50k auf CHF 75k erhöhen'
     },
     { 
       type: 'opportunity', 
       title: 'Franchise optimieren', 
       description: '3 Jahre keine Schäden',
-      action: 'CHF 240/Jahr sparen',
-      savings: 240
+      action: 'CHF 240/Jahr sparen'
     }
   ];
 
   const valuableItems = [
-    { id: 1, name: 'MacBook Pro 16"', value: 'CHF 3200', date: '12.01.2024', hasReceipt: true, hasPhoto: true },
-    { id: 2, name: 'Rennvelo', value: 'CHF 4500', date: '05.06.2023', hasReceipt: true, hasPhoto: true }
+    { id: 1, name: 'MacBook Pro 16"', value: 'CHF 3200', date: '12.01.2024' },
+    { id: 2, name: 'Rennvelo', value: 'CHF 4500', date: '05.06.2023' }
   ];
 
   const policies = [
@@ -261,6 +187,15 @@ const InsuranceNavigator = () => {
     setNotifications(notifications.map(n => ({ ...n, read: true })));
   };
 
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file && file.type === 'application/pdf') {
+      setUploadedFile(file);
+    } else {
+      alert('Bitte wählen Sie eine PDF-Datei aus');
+    }
+  };
+
   const getNotificationIcon = (type) => {
     switch(type) {
       case 'warning': return <AlertCircle className="w-5 h-5 text-orange-500" />;
@@ -280,22 +215,13 @@ const InsuranceNavigator = () => {
             <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('app_subtitle')}</p>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowExportMenu(true)}
-              className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}
-            >
+            <button onClick={() => setShowExportMenu(true)} className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
               <Download className="w-5 h-5" />
             </button>
-            <button
-              onClick={() => setShowLanguageMenu(true)}
-              className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}
-            >
+            <button onClick={() => setShowLanguageMenu(true)} className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
               <Globe className="w-5 h-5" />
             </button>
-            <button
-              onClick={() => setShowNotifications(true)}
-              className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} relative`}
-            >
+            <button onClick={() => setShowNotifications(true)} className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} relative`}>
               <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -303,10 +229,7 @@ const InsuranceNavigator = () => {
                 </span>
               )}
             </button>
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}
-            >
+            <button onClick={() => setDarkMode(!darkMode)} className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
               {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
           </div>
@@ -358,9 +281,29 @@ const InsuranceNavigator = () => {
               <div className="text-3xl font-bold">CHF 1620</div>
               <div className="text-sm opacity-90">{t('annual_premium')}</div>
             </div>
+
+            <button 
+              onClick={() => setShowAddPolicy(true)}
+              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-blue-700"
+            >
+              <Plus className="w-5 h-5" />
+              {t('add_policy')}
+            </button>
+
             {policies.map((p, i) => (
               <div key={i} className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
-                <div className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{p.type}</div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className={`font-semibold text-lg ${darkMode ? 'text-white' : 'text-gray-900'}`}>{p.type}</div>
+                  {p.status === 'attention' ? (
+                    <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">
+                      {t('check_needed')}
+                    </span>
+                  ) : (
+                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                      ✓ {t('optimal')}
+                    </span>
+                  )}
+                </div>
                 <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{p.company}</div>
               </div>
             ))}
@@ -374,10 +317,7 @@ const InsuranceNavigator = () => {
               <div className="text-3xl font-bold">CHF 7700</div>
               <div className="text-sm opacity-90">{t('secured_values_proof')}</div>
             </div>
-            <button 
-              onClick={() => setShowQRScanner(true)}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg flex items-center justify-center gap-2"
-            >
+            <button onClick={() => setShowQRScanner(true)} className="w-full bg-blue-600 text-white py-3 rounded-lg flex items-center justify-center gap-2">
               <QrCode className="w-5 h-5" />
               {t('scan_receipt')}
             </button>
@@ -509,9 +449,7 @@ const InsuranceNavigator = () => {
             <div className={`p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-between`}>
               <div>
                 <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('notifications')}</h2>
-                {unreadCount > 0 && (
-                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{unreadCount} neue</p>
-                )}
+                {unreadCount > 0 && <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{unreadCount} neue</p>}
               </div>
               <button onClick={() => setShowNotifications(false)} className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
                 <X className="w-5 h-5" />
@@ -590,13 +528,107 @@ const InsuranceNavigator = () => {
                 <Download className="w-5 h-5 text-purple-600" />
                 <div>
                   <div className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('export_all')}</div>
-                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Alle Daten</div>
+                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>ZIP Format</div>
                 </div>
               </button>
             </div>
             <button onClick={() => setShowExportMenu(false)} className={`w-full mt-4 py-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               {t('cancel')}
             </button>
+          </div>
+        </div>
+      )}
+
+      {showAddPolicy && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg max-w-md w-full p-6`}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                {t('add_policy')}
+              </h2>
+              <button onClick={() => setShowAddPolicy(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  {t('policy_name')}
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="z.B. Hausratversicherung"
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  {t('policy_company')}
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="z.B. Helvetia"
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  {t('policy_type')}
+                </label>
+                <select 
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                >
+                  <option>{t('select_type')}</option>
+                  <option>{t('household')}</option>
+                  <option>{t('car')}</option>
+                  <option>{t('liability')}</option>
+                  <option>{t('health')}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  {t('upload_policy_pdf')}
+                </label>
+                <div className={`border-2 border-dashed rounded-lg p-6 text-center ${darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'}`}>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="pdf-upload"
+                  />
+                  <label htmlFor="pdf-upload" className="cursor-pointer">
+                    <Upload className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+                    <p className={`text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                      {t('select_pdf')}
+                    </p>
+                    <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
+                      {t('or_drag_drop')}
+                    </p>
+                    {uploadedFile && (
+                      <div className="mt-3 flex items-center justify-center gap-2 text-green-600">
+                        <CheckCircle className="w-5 h-5" />
+                        <span className="text-sm font-medium">{uploadedFile.name}</span>
+                      </div>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => {
+                  setShowAddPolicy(false);
+                  setUploadedFile(null);
+                }}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700"
+              >
+                {t('save')}
+              </button>
+            </div>
           </div>
         </div>
       )}
