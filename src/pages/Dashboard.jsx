@@ -1,10 +1,6 @@
-// Statt: export default InsuranceNavigator;
-// Schreibe:
-function Dashboard() {
-}
 import React, { useState } from 'react';
 import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check } from 'lucide-react';
-
+function Dashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState('de');
