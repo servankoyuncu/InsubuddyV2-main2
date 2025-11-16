@@ -1,9 +1,13 @@
 // Statt: export default InsuranceNavigator;
 // Schreibe:
 function Dashboard() {
-}
+const { logout, currentUser } = useAuth();
+  
+  const [activeTab, setActiveTab] = useState('dashboard');}
+
 import React, { useState } from 'react';
 import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [darkMode, setDarkMode] = useState(false);
@@ -357,6 +361,12 @@ import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upl
                 </div>
                 {biometricEnabled && <Check className="w-5 h-5 text-green-500" />}
               </button>
+              <button
+              onClick={logout}
+              className="w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700"
+            >
+              Abmelden
+            </button>
             </div>
           </div>
         )}
