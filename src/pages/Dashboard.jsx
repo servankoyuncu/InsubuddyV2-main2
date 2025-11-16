@@ -207,7 +207,7 @@ import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upl
       case 'reminder': return <Clock className="w-5 h-5 text-purple-500" />;
       default: return <Bell className="w-5 h-5" />;
     }
-  };
+  }
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
