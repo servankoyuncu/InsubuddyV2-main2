@@ -14,6 +14,8 @@ function Dashboard() {
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [showBiometricSetup, setShowBiometricSetup] = useState(false);
   const [showAddPolicy, setShowAddPolicy] = useState(false);
+  const [showPDFViewer, setShowPDFViewer] = useState(false);
+  const [selectedPDF, setSelectedPDF] = useState(null);
   const [notificationFilter, setNotificationFilter] = useState('all');
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null);
@@ -279,6 +281,15 @@ function Dashboard() {
     }
   };
 
+  const handleViewPDF = (policy) => {
+    if (policy.file && policy.file.data) {
+      setSelectedPDF(policy);
+      setShowPDFViewer(true);
+    } else {
+      alert('Kein PDF für diese Police vorhanden');
+    }
+  };
+
   const getNotificationIcon = (type) => {
     switch(type) {
       case 'warning': return <AlertCircle className="w-5 h-5 text-orange-500" />;
@@ -443,6 +454,15 @@ function Dashboard() {
                           <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
                             ✓ {t('optimal')}
                           </span>
+                        )}
+                        {p.file && (
+                          <button
+                            onClick={() => handleViewPDF(p)}
+                            className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"
+                            title="PDF ansehen"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </button>
                         )}
                         <button
                           onClick={() => handleDeletePolicy(p.id)}
@@ -824,6 +844,42 @@ function Dashboard() {
               >
                 {loading ? 'Wird gespeichert...' : t('save')}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPDFViewer && selectedPDF && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-4xl h-[90vh] bg-white rounded-lg overflow-hidden flex flex-col">
+            <div className="bg-gray-800 p-4 flex items-center justify-between">
+              <div className="text-white">
+                <h3 className="font-semibold">{selectedPDF.type} - {selectedPDF.company}</h3>
+                <p className="text-sm text-gray-300">{selectedPDF.file.name}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={selectedPDF.file.data}
+                  download={selectedPDF.file.name}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Herunterladen
+                </a>
+                <button
+                  onClick={() => setShowPDFViewer(false)}
+                  className="p-2 text-white hover:bg-gray-700 rounded-lg"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto bg-gray-100">
+              <iframe
+                src={selectedPDF.file.data}
+                className="w-full h-full"
+                title="PDF Viewer"
+              />
             </div>
           </div>
         </div>
