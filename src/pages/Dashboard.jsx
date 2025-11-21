@@ -257,6 +257,25 @@ function Dashboard() {
     }
   };
 
+  const handleDeletePolicy = async (policyId) => {
+    if (!window.confirm('Möchten Sie diese Police wirklich löschen?')) {
+      return;
+    }
+
+    try {
+      await deletePolicy(policyId);
+      
+      // Policen neu laden
+      const updatedPolicies = await getUserPolicies(currentUser.uid);
+      setPolicies(updatedPolicies);
+      
+      alert('Police erfolgreich gelöscht!');
+    } catch (error) {
+      console.error('Fehler beim Löschen:', error);
+      alert('Fehler beim Löschen der Police');
+    }
+  };
+
   const getNotificationIcon = (type) => {
     switch(type) {
       case 'warning': return <AlertCircle className="w-5 h-5 text-orange-500" />;
@@ -368,15 +387,24 @@ function Dashboard() {
                 <div key={i} className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className={`font-semibold text-lg ${darkMode ? 'text-white' : 'text-gray-900'}`}>{p.type}</div>
-                    {p.status === 'attention' ? (
-                      <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">
-                        {t('check_needed')}
-                      </span>
-                    ) : (
-                      <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                        ✓ {t('optimal')}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {p.status === 'attention' ? (
+                        <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">
+                          {t('check_needed')}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                          ✓ {t('optimal')}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => handleDeletePolicy(p.id)}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                        title="Löschen"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{p.company}</div>
                   <div className={`text-sm mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{p.name}</div>
