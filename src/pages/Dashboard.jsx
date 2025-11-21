@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { addPolicy, getUserPolicies, deletePolicy } from '../services/policyService';
+import { addPolicy, getUserPolicies, deletePolicy } from '../services/policyservice';
 
 function Dashboard() {
   const { currentUser, logout } = useAuth();
