@@ -23,6 +23,7 @@ function Dashboard() {
   const [policyName, setPolicyName] = useState('');
   const [policyCompany, setPolicyCompany] = useState('');
   const [policyType, setPolicyType] = useState('');
+  const [policyPremium, setPolicyPremium] = useState('');
   const [loading, setLoading] = useState(false);
   
   const [notifications, setNotifications] = useState([
@@ -228,7 +229,7 @@ function Dashboard() {
         name: policyName,
         company: policyCompany,
         type: policyType,
-        premium: 'CHF 0/Jahr',
+        premium: policyPremium ? `CHF ${policyPremium}/Jahr` : 'CHF 0/Jahr',
         coverage: 'N/A',
         status: 'ok'
       };
@@ -243,6 +244,7 @@ function Dashboard() {
       setPolicyName('');
       setPolicyCompany('');
       setPolicyType('');
+      setPolicyPremium('');
       setUploadedFile(null);
       setShowAddPolicy(false);
       
@@ -337,7 +339,12 @@ function Dashboard() {
           <div className="space-y-4">
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-lg">
               <h2 className="text-xl font-semibold mb-2">{t('policy_overview')}</h2>
-              <div className="text-3xl font-bold">CHF 1620</div>
+              <div className="text-3xl font-bold">
+                CHF {policies.reduce((sum, p) => {
+                  const premium = p.premium?.match(/\d+/)?.[0] || '0';
+                  return sum + parseInt(premium);
+                }, 0)}
+              </div>
               <div className="text-sm opacity-90">{t('annual_premium')}</div>
             </div>
 
@@ -371,6 +378,7 @@ function Dashboard() {
                   </div>
                   <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{p.company}</div>
                   <div className={`text-sm mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{p.name}</div>
+                  <div className={`text-lg font-semibold mt-2 text-blue-600`}>{p.premium}</div>
                 </div>
               ))
             )}
@@ -666,6 +674,19 @@ function Dashboard() {
                   <option value={t('liability')}>{t('liability')}</option>
                   <option value={t('health')}>{t('health')}</option>
                 </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Jährliche Prämie (CHF)
+                </label>
+                <input 
+                  type="number" 
+                  placeholder="z.B. 1200"
+                  value={policyPremium}
+                  onChange={(e) => setPolicyPremium(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
               </div>
 
               <div>
