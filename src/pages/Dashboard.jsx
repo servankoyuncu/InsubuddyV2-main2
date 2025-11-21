@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { addPolicy, getUserPolicies, deletePolicy } from '../services/policyService';
+
 function Dashboard() {
   const { currentUser, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -16,12 +18,34 @@ function Dashboard() {
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null);
   
+  // Policen State
+  const [policies, setPolicies] = useState([]);
+  const [policyName, setPolicyName] = useState('');
+  const [policyCompany, setPolicyCompany] = useState('');
+  const [policyType, setPolicyType] = useState('');
+  const [loading, setLoading] = useState(false);
+  
   const [notifications, setNotifications] = useState([
     { id: 1, type: 'warning', title_key: 'notif_policy_update', time: '2 Std.', read: false },
     { id: 2, type: 'info', title_key: 'notif_document_uploaded', time: '5 Std.', read: false },
     { id: 3, type: 'success', title_key: 'notif_savings_found', time: '1 Tag', read: true },
     { id: 4, type: 'reminder', title_key: 'notif_renewal_reminder', time: '2 Tage', read: true }
   ]);
+
+  // Policen laden beim Start
+  useEffect(() => {
+    const loadPolicies = async () => {
+      if (currentUser) {
+        try {
+          const userPolicies = await getUserPolicies(currentUser.uid);
+          setPolicies(userPolicies);
+        } catch (error) {
+          console.error('Fehler beim Laden der Policen:', error);
+        }
+      }
+    };
+    loadPolicies();
+  }, [currentUser]);
 
   const translations = {
     de: {
@@ -169,11 +193,6 @@ function Dashboard() {
     { id: 2, name: 'Rennvelo', value: 'CHF 4500', date: '05.06.2023' }
   ];
 
-  const policies = [
-    { company: 'Helvetia', type: t('household'), premium: 'CHF 420/Jahr', coverage: 'CHF 50000', status: 'attention' },
-    { company: 'AXA', type: t('car'), premium: 'CHF 1200/Jahr', coverage: 'Vollkasko', status: 'ok' }
-  ];
-
   const filteredNotifications = notifications.filter(n => {
     if (notificationFilter === 'all') return true;
     if (notificationFilter === 'warning') return n.type === 'warning';
@@ -194,6 +213,45 @@ function Dashboard() {
       setUploadedFile(file);
     } else {
       alert('Bitte wählen Sie eine PDF-Datei aus');
+    }
+  };
+
+  const handleSavePolicy = async () => {
+    if (!policyName || !policyCompany || !policyType) {
+      alert('Bitte füllen Sie alle Felder aus');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const policyData = {
+        name: policyName,
+        company: policyCompany,
+        type: policyType,
+        premium: 'CHF 0/Jahr',
+        coverage: 'N/A',
+        status: 'ok'
+      };
+
+      await addPolicy(currentUser.uid, policyData, uploadedFile);
+      
+      // Policen neu laden
+      const updatedPolicies = await getUserPolicies(currentUser.uid);
+      setPolicies(updatedPolicies);
+      
+      // Formular zurücksetzen
+      setPolicyName('');
+      setPolicyCompany('');
+      setPolicyType('');
+      setUploadedFile(null);
+      setShowAddPolicy(false);
+      
+      alert('Police erfolgreich gespeichert!');
+    } catch (error) {
+      console.error('Fehler beim Speichern:', error);
+      alert('Fehler beim Speichern der Police');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -242,7 +300,7 @@ function Dashboard() {
           <div className="space-y-6">
             <div className="grid grid-cols-3 gap-4">
               <div className={`${darkMode ? 'bg-blue-900' : 'bg-blue-50'} p-4 rounded-lg`}>
-                <div className={`text-2xl font-bold ${darkMode ? 'text-blue-300' : 'text-blue-600'}`}>2</div>
+                <div className={`text-2xl font-bold ${darkMode ? 'text-blue-300' : 'text-blue-600'}`}>{policies.length}</div>
                 <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('active_policies')}</div>
               </div>
               <div className={`${darkMode ? 'bg-green-900' : 'bg-green-50'} p-4 rounded-lg`}>
@@ -291,23 +349,31 @@ function Dashboard() {
               {t('add_policy')}
             </button>
 
-            {policies.map((p, i) => (
-              <div key={i} className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className={`font-semibold text-lg ${darkMode ? 'text-white' : 'text-gray-900'}`}>{p.type}</div>
-                  {p.status === 'attention' ? (
-                    <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">
-                      {t('check_needed')}
-                    </span>
-                  ) : (
-                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                      ✓ {t('optimal')}
-                    </span>
-                  )}
-                </div>
-                <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{p.company}</div>
+            {policies.length === 0 ? (
+              <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-8 text-center`}>
+                <FileText className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Noch keine Policen hinzugefügt</p>
               </div>
-            ))}
+            ) : (
+              policies.map((p, i) => (
+                <div key={i} className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className={`font-semibold text-lg ${darkMode ? 'text-white' : 'text-gray-900'}`}>{p.type}</div>
+                    {p.status === 'attention' ? (
+                      <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">
+                        {t('check_needed')}
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                        ✓ {t('optimal')}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{p.company}</div>
+                  <div className={`text-sm mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{p.name}</div>
+                </div>
+              ))
+            )}
           </div>
         )}
 
@@ -339,15 +405,15 @@ function Dashboard() {
                   <User className="w-8 h-8 text-indigo-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold">Max Mustermann</h2>
-                  <p className="text-sm">max@email.ch</p>
+                  <h2 className="text-lg font-semibold">{currentUser?.email}</h2>
+                  <p className="text-sm">InsuBuddy Nutzer</p>
                 </div>
               </div>
             </div>
             <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
               <button 
                 onClick={() => setShowBiometricSetup(true)}
-                className="w-full text-left flex items-center justify-between"
+                className="w-full text-left flex items-center justify-between mb-4"
               >
                 <div>
                   <div className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('biometric_auth')}</div>
@@ -356,11 +422,11 @@ function Dashboard() {
                 {biometricEnabled && <Check className="w-5 h-5 text-green-500" />}
               </button>
               <button
-              onClick={logout}
-              className="w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700"
-            >
-              Abmelden
-            </button>
+                onClick={logout}
+                className="w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700"
+              >
+                Abmelden
+              </button>
             </div>
           </div>
         )}
@@ -566,6 +632,8 @@ function Dashboard() {
                 <input 
                   type="text" 
                   placeholder="z.B. Hausratversicherung"
+                  value={policyName}
+                  onChange={(e) => setPolicyName(e.target.value)}
                   className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                 />
               </div>
@@ -577,6 +645,8 @@ function Dashboard() {
                 <input 
                   type="text" 
                   placeholder="z.B. Helvetia"
+                  value={policyCompany}
+                  onChange={(e) => setPolicyCompany(e.target.value)}
                   className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                 />
               </div>
@@ -586,13 +656,15 @@ function Dashboard() {
                   {t('policy_type')}
                 </label>
                 <select 
+                  value={policyType}
+                  onChange={(e) => setPolicyType(e.target.value)}
                   className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                 >
-                  <option>{t('select_type')}</option>
-                  <option>{t('household')}</option>
-                  <option>{t('car')}</option>
-                  <option>{t('liability')}</option>
-                  <option>{t('health')}</option>
+                  <option value="">{t('select_type')}</option>
+                  <option value={t('household')}>{t('household')}</option>
+                  <option value={t('car')}>{t('car')}</option>
+                  <option value={t('liability')}>{t('liability')}</option>
+                  <option value={t('health')}>{t('health')}</option>
                 </select>
               </div>
 
@@ -627,13 +699,11 @@ function Dashboard() {
               </div>
 
               <button 
-                onClick={() => {
-                  setShowAddPolicy(false);
-                  setUploadedFile(null);
-                }}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700"
+                onClick={handleSavePolicy}
+                disabled={loading}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
               >
-                {t('save')}
+                {loading ? 'Wird gespeichert...' : t('save')}
               </button>
             </div>
           </div>
@@ -641,5 +711,6 @@ function Dashboard() {
       )}
     </div>
   );
-};
-  export default Dashboard;
+}
+
+export default Dashboard;
