@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { addPolicy, getUserPolicies, deletePolicy } from '../services/policyservice';
+import { addPolicy, getUserPolicies, deletePolicy } from '../services/policyService';
+import { getNotificationSettings, checkExpiringPolicies } from '../services/notificationService';
 
 function Dashboard() {
   const { currentUser, logout } = useAuth();
@@ -29,12 +30,11 @@ function Dashboard() {
   const [policyExpiryDate, setPolicyExpiryDate] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const [notifications, setNotifications] = useState([
-    { id: 1, type: 'warning', title_key: 'notif_policy_update', time: '2 Std.', read: false },
-    { id: 2, type: 'info', title_key: 'notif_document_uploaded', time: '5 Std.', read: false },
-    { id: 3, type: 'success', title_key: 'notif_savings_found', time: '1 Tag', read: true },
-    { id: 4, type: 'reminder', title_key: 'notif_renewal_reminder', time: '2 Tage', read: true }
-  ]);
+  // Benachrichtigungs State
+  const [notificationSettings, setNotificationSettings] = useState({ enabled: true, reminderDays: 30 });
+  const [autoNotifications, setAutoNotifications] = useState([]);
+  
+  const [notifications, setNotifications] = useState([]);
 
   // Policen laden beim Start
   useEffect(() => {
@@ -51,9 +51,30 @@ function Dashboard() {
     loadPolicies();
   }, [currentUser]);
 
+  // Benachrichtigungs-Einstellungen laden
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (currentUser) {
+        const settings = await getNotificationSettings(currentUser.uid);
+        setNotificationSettings(settings);
+      }
+    };
+    loadSettings();
+  }, [currentUser]);
+
+  // Automatische Benachrichtigungen generieren wenn Policen oder Einstellungen sich ändern
+  useEffect(() => {
+    if (notificationSettings.enabled && policies.length > 0) {
+      const newNotifications = checkExpiringPolicies(policies, notificationSettings.reminderDays);
+      setAutoNotifications(newNotifications);
+    } else {
+      setAutoNotifications([]);
+    }
+  }, [policies, notificationSettings]);
+
   const translations = {
     de: {
-      app_title: 'VersicherungsAssistent',
+      app_title: 'InsuBuddy',
       app_subtitle: 'Ihr intelligenter Lebenslagen-Navigator',
       tab_overview: 'Übersicht',
       tab_policies: 'Policen',
@@ -111,7 +132,7 @@ function Dashboard() {
       notif_renewal_reminder: 'Auto läuft ab'
     },
     en: {
-      app_title: 'Insurance Assistant',
+      app_title: 'InsuBuddy',
       app_subtitle: 'Your intelligent navigator',
       tab_overview: 'Overview',
       tab_policies: 'Policies',
@@ -197,7 +218,21 @@ function Dashboard() {
     { id: 2, name: 'Rennvelo', value: 'CHF 4500', date: '05.06.2023' }
   ];
 
-  const filteredNotifications = notifications.filter(n => {
+  // Alle Benachrichtigungen zusammenführen
+  const allNotifications = [
+    ...autoNotifications.map(n => ({
+      id: n.id,
+      type: n.type === 'critical' ? 'warning' : n.type,
+      title_key: n.title,
+      message: n.message,
+      time: 'Neu',
+      read: false,
+      isAuto: true
+    })),
+    ...notifications
+  ];
+
+  const filteredNotifications = allNotifications.filter(n => {
     if (notificationFilter === 'all') return true;
     if (notificationFilter === 'warning') return n.type === 'warning';
     if (notificationFilter === 'reminder') return n.type === 'reminder';
@@ -205,10 +240,11 @@ function Dashboard() {
     return true;
   });
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = allNotifications.filter(n => !n.read).length;
 
   const markAllAsRead = () => {
     setNotifications(notifications.map(n => ({ ...n, read: true })));
+    setAutoNotifications(autoNotifications.map(n => ({ ...n, read: true })));
   };
 
   const handleFileUpload = (event) => {
@@ -524,6 +560,88 @@ function Dashboard() {
                 </div>
               </div>
             </div>
+            
+            {/* Benachrichtigungs-Einstellungen */}
+            <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
+              <div className="flex items-center gap-3 mb-4">
+                <Bell className="w-6 h-6 text-indigo-600" />
+                <h3 className="text-lg font-semibold">Benachrichtigungen</h3>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Toggle für Benachrichtigungen */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      Ablauf-Erinnerungen
+                    </p>
+                    <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Benachrichtigungen über ablaufende Policen
+                    </p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      const newSettings = { ...notificationSettings, enabled: !notificationSettings.enabled };
+                      setNotificationSettings(newSettings);
+                      try {
+                        const { saveNotificationSettings } = await import('../services/notificationService');
+                        await saveNotificationSettings(currentUser.uid, newSettings);
+                      } catch (error) {
+                        console.error('Fehler beim Speichern:', error);
+                      }
+                    }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      notificationSettings.enabled ? 'bg-indigo-600' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        notificationSettings.enabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Erinnerungs-Zeitraum */}
+                {notificationSettings.enabled && (
+                  <div>
+                    <label className={`block text-sm font-medium mb-3 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                      Benachrichtigung {notificationSettings.reminderDays} Tage vor Ablauf
+                    </label>
+                    <div className="flex gap-2 flex-wrap">
+                      {[7, 14, 30, 60, 90].map((days) => (
+                        <button
+                          key={days}
+                          onClick={async () => {
+                            const newSettings = { ...notificationSettings, reminderDays: days };
+                            setNotificationSettings(newSettings);
+                            try {
+                              const { saveNotificationSettings } = await import('../services/notificationService');
+                              await saveNotificationSettings(currentUser.uid, newSettings);
+                            } catch (error) {
+                              console.error('Fehler beim Speichern:', error);
+                            }
+                          }}
+                          className={`px-3 py-2 rounded-lg font-medium transition-colors ${
+                            notificationSettings.reminderDays === days
+                              ? 'bg-indigo-600 text-white'
+                              : darkMode 
+                              ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          {days}
+                        </button>
+                      ))}
+                    </div>
+                    <p className={`text-xs mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Wählen Sie, wie viele Tage vor Ablauf Sie benachrichtigt werden möchten
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+            
             <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
               <button 
                 onClick={() => setShowBiometricSetup(true)}
@@ -678,8 +796,15 @@ function Dashboard() {
                       <div className="flex gap-3">
                         {getNotificationIcon(notif.type)}
                         <div className="flex-1">
-                          <div className={`font-medium ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>{t(notif.title_key)}</div>
-                          <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>{notif.time}</div>
+                          <div className={`font-medium ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
+                            {notif.isAuto ? notif.title_key : t(notif.title_key)}
+                          </div>
+                          {notif.message && (
+                            <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
+                              {notif.message}
+                            </div>
+                          )}
+                          <div className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'} mt-1`}>{notif.time}</div>
                         </div>
                         {!notif.read && <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>}
                       </div>
