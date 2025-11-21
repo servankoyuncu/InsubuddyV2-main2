@@ -24,6 +24,7 @@ function Dashboard() {
   const [policyCompany, setPolicyCompany] = useState('');
   const [policyType, setPolicyType] = useState('');
   const [policyPremium, setPolicyPremium] = useState('');
+  const [policyExpiryDate, setPolicyExpiryDate] = useState('');
   const [loading, setLoading] = useState(false);
   
   const [notifications, setNotifications] = useState([
@@ -50,7 +51,7 @@ function Dashboard() {
 
   const translations = {
     de: {
-      app_title: 'InsuBuddy',
+      app_title: 'VersicherungsAssistent',
       app_subtitle: 'Ihr intelligenter Lebenslagen-Navigator',
       tab_overview: 'Übersicht',
       tab_policies: 'Policen',
@@ -108,7 +109,7 @@ function Dashboard() {
       notif_renewal_reminder: 'Auto läuft ab'
     },
     en: {
-      app_title: 'InsuBuddy',
+      app_title: 'Insurance Assistant',
       app_subtitle: 'Your intelligent navigator',
       tab_overview: 'Overview',
       tab_policies: 'Policies',
@@ -230,6 +231,7 @@ function Dashboard() {
         company: policyCompany,
         type: policyType,
         premium: policyPremium ? `CHF ${policyPremium}/Jahr` : 'CHF 0/Jahr',
+        expiryDate: policyExpiryDate || null,
         coverage: 'N/A',
         status: 'ok'
       };
@@ -245,6 +247,7 @@ function Dashboard() {
       setPolicyCompany('');
       setPolicyType('');
       setPolicyPremium('');
+      setPolicyExpiryDate('');
       setUploadedFile(null);
       setShowAddPolicy(false);
       
@@ -285,6 +288,24 @@ function Dashboard() {
       default: return <Bell className="w-5 h-5" />;
     }
   }
+
+  const getDaysUntilExpiry = (expiryDate) => {
+    if (!expiryDate) return null;
+    const today = new Date();
+    const expiry = new Date(expiryDate);
+    const diffTime = expiry - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const getExpiryStatus = (expiryDate) => {
+    const days = getDaysUntilExpiry(expiryDate);
+    if (days === null) return null;
+    if (days < 0) return { text: 'Abgelaufen', color: 'text-red-600', bgColor: 'bg-red-100' };
+    if (days <= 30) return { text: `${days} Tage`, color: 'text-orange-600', bgColor: 'bg-orange-100' };
+    if (days <= 90) return { text: `${days} Tage`, color: 'text-yellow-600', bgColor: 'bg-yellow-100' };
+    return { text: `${days} Tage`, color: 'text-green-600', bgColor: 'bg-green-100' };
+  };
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
@@ -329,10 +350,34 @@ function Dashboard() {
                 <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('secured_values')}</div>
               </div>
               <div className={`${darkMode ? 'bg-orange-900' : 'bg-orange-50'} p-4 rounded-lg`}>
-                <div className={`text-2xl font-bold ${darkMode ? 'text-orange-300' : 'text-orange-600'}`}>2</div>
-                <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('recommendations')}</div>
+                <div className={`text-2xl font-bold ${darkMode ? 'text-orange-300' : 'text-orange-600'}`}>
+                  {policies.filter(p => getDaysUntilExpiry(p.expiryDate) <= 30 && getDaysUntilExpiry(p.expiryDate) >= 0).length}
+                </div>
+                <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Laufen bald ab</div>
               </div>
             </div>
+
+            {policies.filter(p => getDaysUntilExpiry(p.expiryDate) <= 30 && getDaysUntilExpiry(p.expiryDate) >= 0).length > 0 && (
+              <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                <div className={`p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <h2 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>⚠️ Ablaufende Policen</h2>
+                </div>
+                {policies.filter(p => getDaysUntilExpiry(p.expiryDate) <= 30 && getDaysUntilExpiry(p.expiryDate) >= 0).map((policy, i) => (
+                  <div key={i} className={`p-4 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}>
+                    <div className="flex gap-3">
+                      <AlertCircle className="w-5 h-5 text-orange-500" />
+                      <div className="flex-1">
+                        <div className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{policy.type} - {policy.company}</div>
+                        <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Läuft in {getDaysUntilExpiry(policy.expiryDate)} Tagen ab
+                        </div>
+                        <div className="text-sm text-blue-600 mt-2">Jetzt verlängern</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
               <div className={`p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
@@ -383,34 +428,45 @@ function Dashboard() {
                 <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Noch keine Policen hinzugefügt</p>
               </div>
             ) : (
-              policies.map((p, i) => (
-                <div key={i} className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className={`font-semibold text-lg ${darkMode ? 'text-white' : 'text-gray-900'}`}>{p.type}</div>
-                    <div className="flex items-center gap-2">
-                      {p.status === 'attention' ? (
-                        <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">
-                          {t('check_needed')}
-                        </span>
-                      ) : (
-                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                          ✓ {t('optimal')}
-                        </span>
-                      )}
-                      <button
-                        onClick={() => handleDeletePolicy(p.id)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                        title="Löschen"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+              policies.map((p, i) => {
+                const expiryStatus = getExpiryStatus(p.expiryDate);
+                return (
+                  <div key={i} className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className={`font-semibold text-lg ${darkMode ? 'text-white' : 'text-gray-900'}`}>{p.type}</div>
+                      <div className="flex items-center gap-2">
+                        {p.status === 'attention' ? (
+                          <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">
+                            {t('check_needed')}
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                            ✓ {t('optimal')}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => handleDeletePolicy(p.id)}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                          title="Löschen"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
+                    <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{p.company}</div>
+                    <div className={`text-sm mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{p.name}</div>
+                    <div className={`text-lg font-semibold mt-2 text-blue-600`}>{p.premium}</div>
+                    {expiryStatus && (
+                      <div className="flex items-center gap-2 mt-3">
+                        <Clock className="w-4 h-4 text-gray-500" />
+                        <span className={`text-sm font-medium px-2 py-1 rounded-full ${expiryStatus.bgColor} ${expiryStatus.color}`}>
+                          {expiryStatus.text}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{p.company}</div>
-                  <div className={`text-sm mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{p.name}</div>
-                  <div className={`text-lg font-semibold mt-2 text-blue-600`}>{p.premium}</div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         )}
@@ -715,6 +771,18 @@ function Dashboard() {
                   placeholder="z.B. 1200"
                   value={policyPremium}
                   onChange={(e) => setPolicyPremium(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Ablaufdatum (optional)
+                </label>
+                <input 
+                  type="date" 
+                  value={policyExpiryDate}
+                  onChange={(e) => setPolicyExpiryDate(e.target.value)}
                   className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                 />
               </div>
