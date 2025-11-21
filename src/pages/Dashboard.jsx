@@ -341,9 +341,11 @@ function Dashboard() {
               <h2 className="text-xl font-semibold mb-2">{t('policy_overview')}</h2>
               <div className="text-3xl font-bold">
                 CHF {policies.reduce((sum, p) => {
-                  const premium = p.premium?.match(/\d+/)?.[0] || '0';
-                  return sum + parseInt(premium);
-                }, 0)}
+                  // Extrahiere Zahl aus String wie "CHF 1200/Jahr" oder "CHF 0/Jahr"
+                  const premiumMatch = p.premium?.match(/(\d+)/);
+                  const premium = premiumMatch ? parseInt(premiumMatch[0]) : 0;
+                  return sum + premium;
+                }, 0).toLocaleString('de-CH')}
               </div>
               <div className="text-sm opacity-90">{t('annual_premium')}</div>
             </div>
