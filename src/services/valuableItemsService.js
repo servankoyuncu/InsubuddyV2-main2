@@ -9,13 +9,52 @@ import {
   where 
 } from 'firebase/firestore';
 
-// Bild zu Base64 konvertieren
+// Bild zu Base64 konvertieren und komprimieren
 const imageToBase64 = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        // Canvas erstellen für Kompression
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Max Breite/Höhe auf 1200px begrenzen
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 1200;
+        
+        let width = img.width;
+        let height = img.height;
+        
+        // Größe anpassen wenn zu groß
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Bild auf Canvas zeichnen
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Als komprimiertes JPEG zurückgeben (0.7 = 70% Qualität)
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+        resolve(compressedBase64);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
     reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = (error) => reject(error);
   });
 };
 
