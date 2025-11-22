@@ -3,6 +3,7 @@ import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upl
 import { useAuth } from '../context/AuthContext';
 import { addPolicy, getUserPolicies, deletePolicy } from '../services/policyservice';
 import { getNotificationSettings, checkExpiringPolicies } from '../services/notificationService';
+import { addValuableItem, getUserValuableItems, deleteValuableItem, calculateTotalValue } from '../services/valuableItemsService';
 
 function Dashboard() {
   const { currentUser, logout } = useAuth();
@@ -17,6 +18,9 @@ function Dashboard() {
   const [showAddPolicy, setShowAddPolicy] = useState(false);
   const [showPDFViewer, setShowPDFViewer] = useState(false);
   const [selectedPDF, setSelectedPDF] = useState(null);
+  const [showAddItem, setShowAddItem] = useState(false);
+  const [showImageViewer, setShowImageViewer] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
   const [notificationFilter, setNotificationFilter] = useState('all');
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null);
@@ -29,6 +33,15 @@ function Dashboard() {
   const [policyPremium, setPolicyPremium] = useState('');
   const [policyExpiryDate, setPolicyExpiryDate] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Wertgegenstände State
+  const [valuableItems, setValuableItems] = useState([]);
+  const [itemName, setItemName] = useState('');
+  const [itemValue, setItemValue] = useState('');
+  const [itemCategory, setItemCategory] = useState('');
+  const [itemPurchaseDate, setItemPurchaseDate] = useState('');
+  const [itemImage, setItemImage] = useState(null);
+  const [itemImagePreview, setItemImagePreview] = useState(null);
   
   // Benachrichtigungs State
   const [notificationSettings, setNotificationSettings] = useState({ enabled: true, reminderDays: 30 });
@@ -49,6 +62,21 @@ function Dashboard() {
       }
     };
     loadPolicies();
+  }, [currentUser]);
+
+  // Wertgegenstände laden beim Start
+  useEffect(() => {
+    const loadItems = async () => {
+      if (currentUser) {
+        try {
+          const items = await getUserValuableItems(currentUser.uid);
+          setValuableItems(items);
+        } catch (error) {
+          console.error('Fehler beim Laden der Wertgegenstände:', error);
+        }
+      }
+    };
+    loadItems();
   }, [currentUser]);
 
   // Benachrichtigungs-Einstellungen laden
@@ -306,6 +334,82 @@ function Dashboard() {
     }
   };
 
+  const handleImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+      setItemImage(file);
+      // Vorschau erstellen
+      const reader = new FileReader();
+      reader.onload = (e) => setItemImagePreview(e.target.result);
+      reader.readAsDataURL(file);
+    } else {
+      alert('Bitte wählen Sie ein Bild aus (JPG, PNG, etc.)');
+    }
+  };
+
+  const handleSaveItem = async () => {
+    if (!itemName || !itemValue || !itemCategory || !itemImage) {
+      alert('Bitte füllen Sie alle Felder aus und laden Sie ein Bild hoch');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const itemData = {
+        name: itemName,
+        value: itemValue,
+        category: itemCategory,
+        purchaseDate: itemPurchaseDate || null
+      };
+
+      await addValuableItem(currentUser.uid, itemData, itemImage);
+      
+      // Items neu laden
+      const updatedItems = await getUserValuableItems(currentUser.uid);
+      setValuableItems(updatedItems);
+      
+      // Formular zurücksetzen
+      setItemName('');
+      setItemValue('');
+      setItemCategory('');
+      setItemPurchaseDate('');
+      setItemImage(null);
+      setItemImagePreview(null);
+      setShowAddItem(false);
+      
+      alert('Wertgegenstand erfolgreich gespeichert!');
+    } catch (error) {
+      console.error('Fehler beim Speichern:', error);
+      alert('Fehler beim Speichern des Wertgegenstands');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteItem = async (itemId) => {
+    if (!window.confirm('Möchten Sie diesen Wertgegenstand wirklich löschen?')) {
+      return;
+    }
+
+    try {
+      await deleteValuableItem(itemId);
+      
+      // Items neu laden
+      const updatedItems = await getUserValuableItems(currentUser.uid);
+      setValuableItems(updatedItems);
+      
+      alert('Wertgegenstand erfolgreich gelöscht!');
+    } catch (error) {
+      console.error('Fehler beim Löschen:', error);
+      alert('Fehler beim Löschen des Wertgegenstands');
+    }
+  };
+
+  const handleViewImage = (item) => {
+    setSelectedImage(item);
+    setShowImageViewer(true);
+  };
+
   const getNotificationIcon = (type) => {
     switch(type) {
       case 'warning': return <AlertCircle className="w-5 h-5 text-orange-500" />;
@@ -495,22 +599,76 @@ function Dashboard() {
           <div className="space-y-4">
             <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-lg">
               <h2 className="text-xl font-semibold mb-2">{t('digital_vault')}</h2>
-              <div className="text-3xl font-bold">CHF 0</div>
-              <div className="text-sm opacity-90">{t('secured_values_proof')}</div>
+              <div className="text-3xl font-bold">
+                CHF {calculateTotalValue(valuableItems).toLocaleString('de-CH')}
+              </div>
+              <div className="text-sm opacity-90">{valuableItems.length} Wertgegenstände gesichert</div>
             </div>
-            <button onClick={() => setShowQRScanner(true)} className="w-full bg-blue-600 text-white py-3 rounded-lg flex items-center justify-center gap-2">
-              <QrCode className="w-5 h-5" />
-              {t('scan_receipt')}
+            
+            <button 
+              onClick={() => setShowAddItem(true)} 
+              className="w-full bg-blue-600 text-white py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700"
+            >
+              <Plus className="w-5 h-5" />
+              Wertgegenstand hinzufügen
             </button>
             
-            {/* Platzhalter wenn keine Items */}
-            <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-8 text-center`}>
-              <Camera className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
-              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Noch keine Wertgegenstände hinzugefügt</p>
-              <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                Scannen Sie Belege um Ihre Wertgegenstände zu dokumentieren
-              </p>
-            </div>
+            {valuableItems.length === 0 ? (
+              <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-8 text-center`}>
+                <Camera className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Noch keine Wertgegenstände hinzugefügt</p>
+                <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                  Dokumentieren Sie Ihre wertvollen Gegenstände mit Foto
+                </p>
+              </div>
+            ) : (
+              valuableItems.map((item) => (
+                <div key={item.id} className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
+                  <div className="flex gap-4">
+                    {/* Vorschaubild */}
+                    <div 
+                      onClick={() => handleViewImage(item)}
+                      className="w-20 h-20 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
+                    >
+                      <img 
+                        src={item.image.data} 
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    
+                    {/* Item Info */}
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                            {item.name}
+                          </h3>
+                          <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {item.category}
+                          </p>
+                          {item.purchaseDate && (
+                            <p className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                              Gekauft: {new Date(item.purchaseDate).toLocaleDateString('de-CH')}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleDeleteItem(item.id)}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                          title="Löschen"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="text-lg font-bold text-blue-600 mt-2">
+                        CHF {parseFloat(item.value).toLocaleString('de-CH')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         )}
 
@@ -936,6 +1094,152 @@ function Dashboard() {
               >
                 {loading ? 'Wird gespeichert...' : t('save')}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Valuable Item Modal */}
+      {showAddItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto`}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                Wertgegenstand hinzufügen
+              </h2>
+              <button onClick={() => { setShowAddItem(false); setItemImagePreview(null); }} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Name des Gegenstands *
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="z.B. MacBook Pro 16"
+                  value={itemName}
+                  onChange={(e) => setItemName(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Wert (CHF) *
+                </label>
+                <input 
+                  type="number" 
+                  placeholder="z.B. 3200"
+                  value={itemValue}
+                  onChange={(e) => setItemValue(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Kategorie *
+                </label>
+                <select 
+                  value={itemCategory}
+                  onChange={(e) => setItemCategory(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                >
+                  <option value="">Kategorie wählen</option>
+                  <option value="Elektronik">Elektronik</option>
+                  <option value="Schmuck">Schmuck</option>
+                  <option value="Möbel">Möbel</option>
+                  <option value="Fahrzeuge">Fahrzeuge (Velo, etc.)</option>
+                  <option value="Kunstwerke">Kunstwerke</option>
+                  <option value="Musikinstrumente">Musikinstrumente</option>
+                  <option value="Sonstiges">Sonstiges</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Kaufdatum (optional)
+                </label>
+                <input 
+                  type="date" 
+                  value={itemPurchaseDate}
+                  onChange={(e) => setItemPurchaseDate(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Foto/Quittung * (Pflichtfeld)
+                </label>
+                <div className={`border-2 border-dashed rounded-lg p-6 text-center ${darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'}`}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <label htmlFor="image-upload" className="cursor-pointer">
+                    {itemImagePreview ? (
+                      <div>
+                        <img src={itemImagePreview} alt="Vorschau" className="max-h-48 mx-auto rounded-lg mb-3" />
+                        <p className="text-sm text-green-600 font-medium">✓ Bild ausgewählt</p>
+                        <p className="text-xs text-gray-500 mt-1">Klicken um anderes Bild zu wählen</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Camera className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+                        <p className={`text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                          Foto aufnehmen oder auswählen
+                        </p>
+                        <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
+                          Klicken um Bild hochzuladen
+                        </p>
+                      </>
+                    )}
+                  </label>
+                </div>
+                <p className="text-xs text-red-600 mt-2">* Ein Foto ist erforderlich um den Gegenstand zu dokumentieren</p>
+              </div>
+
+              <button 
+                onClick={handleSaveItem}
+                disabled={loading || !itemImage}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loading ? 'Wird gespeichert...' : 'Speichern'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Viewer Modal */}
+      {showImageViewer && selectedImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-4xl">
+            <div className="bg-gray-800 p-4 flex items-center justify-between rounded-t-lg">
+              <div className="text-white">
+                <h3 className="font-semibold">{selectedImage.name}</h3>
+                <p className="text-sm text-gray-300">CHF {parseFloat(selectedImage.value).toLocaleString('de-CH')}</p>
+              </div>
+              <button
+                onClick={() => setShowImageViewer(false)}
+                className="p-2 text-white hover:bg-gray-700 rounded-lg"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="bg-white rounded-b-lg p-4">
+              <img 
+                src={selectedImage.image.data} 
+                alt={selectedImage.name}
+                className="w-full h-auto max-h-[70vh] object-contain mx-auto"
+              />
             </div>
           </div>
         </div>
