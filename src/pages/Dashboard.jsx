@@ -102,7 +102,7 @@ function Dashboard() {
 
   const translations = {
     de: {
-      app_title: 'VersicherungsAssistent',
+      app_title: 'InsuBuddy',
       app_subtitle: 'Ihr intelligenter Lebenslagen-Navigator',
       tab_overview: 'Übersicht',
       tab_policies: 'Policen',
@@ -160,7 +160,7 @@ function Dashboard() {
       notif_renewal_reminder: 'Auto läuft ab'
     },
     en: {
-      app_title: 'Insurance Assistant',
+      app_title: 'InsuBuddy',
       app_subtitle: 'Your intelligent navigator',
       tab_overview: 'Overview',
       tab_policies: 'Policies',
