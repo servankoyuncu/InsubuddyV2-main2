@@ -74,7 +74,7 @@ function Dashboard() {
 
   const translations = {
     de: {
-      app_title: 'InsuBuddy',
+      app_title: 'VersicherungsAssistent',
       app_subtitle: 'Ihr intelligenter Lebenslagen-Navigator',
       tab_overview: 'Übersicht',
       tab_policies: 'Policen',
@@ -132,7 +132,7 @@ function Dashboard() {
       notif_renewal_reminder: 'Auto läuft ab'
     },
     en: {
-      app_title: 'InsuBuddy',
+      app_title: 'Insurance Assistant',
       app_subtitle: 'Your intelligent navigator',
       tab_overview: 'Overview',
       tab_policies: 'Policies',
@@ -196,26 +196,6 @@ function Dashboard() {
   const languages = [
     { code: 'de', name: 'Deutsch', flag: '🇨🇭' },
     { code: 'en', name: 'English', flag: '🇬🇧' }
-  ];
-
-  const policySuggestions = [
-    { 
-      type: 'critical', 
-      title: 'Hausrat anpassen', 
-      description: 'Deckungssumme zu niedrig',
-      action: 'CHF 50k auf CHF 75k erhöhen'
-    },
-    { 
-      type: 'opportunity', 
-      title: 'Franchise optimieren', 
-      description: '3 Jahre keine Schäden',
-      action: 'CHF 240/Jahr sparen'
-    }
-  ];
-
-  const valuableItems = [
-    { id: 1, name: 'MacBook Pro 16"', value: 'CHF 3200', date: '12.01.2024' },
-    { id: 2, name: 'Rennvelo', value: 'CHF 4500', date: '05.06.2023' }
   ];
 
   // Alle Benachrichtigungen zusammenführen
@@ -393,8 +373,10 @@ function Dashboard() {
                 <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('active_policies')}</div>
               </div>
               <div className={`${darkMode ? 'bg-green-900' : 'bg-green-50'} p-4 rounded-lg`}>
-                <div className={`text-2xl font-bold ${darkMode ? 'text-green-300' : 'text-green-600'}`}>2</div>
-                <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('secured_values')}</div>
+                <div className={`text-2xl font-bold ${darkMode ? 'text-green-300' : 'text-green-600'}`}>
+                  {policies.filter(p => p.file).length}
+                </div>
+                <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Mit PDF</div>
               </div>
               <div className={`${darkMode ? 'bg-orange-900' : 'bg-orange-50'} p-4 rounded-lg`}>
                 <div className={`text-2xl font-bold ${darkMode ? 'text-orange-300' : 'text-orange-600'}`}>
@@ -425,24 +407,6 @@ function Dashboard() {
                 ))}
               </div>
             )}
-
-            <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-              <div className={`p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                <h2 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('action_required')}</h2>
-              </div>
-              {policySuggestions.map((s, i) => (
-                <div key={i} className={`p-4 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}>
-                  <div className="flex gap-3">
-                    <AlertCircle className="w-5 h-5 text-orange-500" />
-                    <div className="flex-1">
-                      <div className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{s.title}</div>
-                      <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{s.description}</div>
-                      <div className="text-sm text-blue-600 mt-2">{s.action}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         )}
 
@@ -531,19 +495,22 @@ function Dashboard() {
           <div className="space-y-4">
             <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-lg">
               <h2 className="text-xl font-semibold mb-2">{t('digital_vault')}</h2>
-              <div className="text-3xl font-bold">CHF 7700</div>
+              <div className="text-3xl font-bold">CHF 0</div>
               <div className="text-sm opacity-90">{t('secured_values_proof')}</div>
             </div>
             <button onClick={() => setShowQRScanner(true)} className="w-full bg-blue-600 text-white py-3 rounded-lg flex items-center justify-center gap-2">
               <QrCode className="w-5 h-5" />
               {t('scan_receipt')}
             </button>
-            {valuableItems.map(item => (
-              <div key={item.id} className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
-                <div className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{item.name}</div>
-                <div className="text-lg text-blue-600 font-medium">{item.value}</div>
-              </div>
-            ))}
+            
+            {/* Platzhalter wenn keine Items */}
+            <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-8 text-center`}>
+              <Camera className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Noch keine Wertgegenstände hinzugefügt</p>
+              <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                Scannen Sie Belege um Ihre Wertgegenstände zu dokumentieren
+              </p>
+            </div>
           </div>
         )}
 
