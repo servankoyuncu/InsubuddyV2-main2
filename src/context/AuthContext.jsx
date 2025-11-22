@@ -20,12 +20,27 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Registrierung
+  // Registrierung MIT DEBUG-LOGS
   async function signup(email, password) {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    // Verifizierungs-E-Mail senden
-    await sendEmailVerification(result.user);
-    return result;
+    console.log('🔵🔵🔵 SIGNUP GESTARTET FÜR:', email);
+    
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      console.log('✅✅✅ USER ERSTELLT:', result.user.uid);
+      console.log('📧 EMAIL:', result.user.email);
+      console.log('🔍 VERIFIZIERT?', result.user.emailVerified);
+      
+      console.log('📤📤📤 SENDE VERIFIZIERUNGS-EMAIL...');
+      await sendEmailVerification(result.user);
+      console.log('✅✅✅ EMAIL WURDE GESENDET!');
+      
+      return result;
+    } catch (error) {
+      console.error('❌❌❌ FEHLER BEIM SIGNUP:', error);
+      console.error('❌ ERROR CODE:', error.code);
+      console.error('❌ ERROR MESSAGE:', error.message);
+      throw error;
+    }
   }
 
   // Login
@@ -74,26 +89,4 @@ export function AuthProvider({ children }) {
       {!loading && children}
     </AuthContext.Provider>
   );
-}
-
-async function signup(email, password) {
-  console.log('🔵 Signup gestartet für:', email);
-  
-  try {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    console.log('✅ User erstellt:', result.user.uid);
-    console.log('📧 User Email:', result.user.email);
-    console.log('🔍 Email verifiziert?', result.user.emailVerified);
-    
-    console.log('📤 Sende Verifizierungs-E-Mail...');
-    await sendEmailVerification(result.user);
-    console.log('✅ Verifizierungs-E-Mail wurde gesendet!');
-    
-    return result;
-  } catch (error) {
-    console.error('❌ Fehler beim Signup:', error);
-    console.error('❌ Error Code:', error.code);
-    console.error('❌ Error Message:', error.message);
-    throw error;
-  }
 }
