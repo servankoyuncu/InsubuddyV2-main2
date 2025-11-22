@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { addPolicy, getUserPolicies, deletePolicy } from '../services/policyservice';
+import { addPolicy, getUserPolicies, deletePolicy } from '../services/policyService';
 import { getNotificationSettings, checkExpiringPolicies } from '../services/notificationService';
 import { addValuableItem, getUserValuableItems, deleteValuableItem, calculateTotalValue } from '../services/valuableItemsService';
 
@@ -420,6 +420,29 @@ function Dashboard() {
     }
   }
 
+  // Berechne jährliche Gesamtprämie
+  const calculateTotalAnnualPremium = () => {
+    return policies.reduce((sum, p) => {
+      const premiumMatch = p.premium?.match(/(\d+)/);
+      const premium = premiumMatch ? parseInt(premiumMatch[0]) : 0;
+      return sum + premium;
+    }, 0);
+  };
+
+  // Berechne monatliche Prämie pro Police
+  const getPremiumBreakdown = () => {
+    return policies.map(p => {
+      const premiumMatch = p.premium?.match(/(\d+)/);
+      const annualPremium = premiumMatch ? parseInt(premiumMatch[0]) : 0;
+      const monthlyPremium = Math.round(annualPremium / 12);
+      return {
+        type: p.type,
+        monthly: monthlyPremium,
+        annual: annualPremium
+      };
+    }).filter(p => p.monthly > 0);
+  };
+
   const getDaysUntilExpiry = (expiryDate) => {
     if (!expiryDate) return null;
     const today = new Date();
@@ -509,6 +532,76 @@ function Dashboard() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Quick Stats Kachel */}
+            {policies.length > 0 && (
+              <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
+                <h2 className={`font-semibold text-lg mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  📊 Deine Versicherungen {new Date().getFullYear()}
+                </h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Jährliche Kosten</div>
+                    <div className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      CHF {calculateTotalAnnualPremium().toLocaleString('de-CH')}
+                    </div>
+                  </div>
+                  <div>
+                    <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Pro Monat</div>
+                    <div className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      CHF {Math.round(calculateTotalAnnualPremium() / 12).toLocaleString('de-CH')}
+                    </div>
+                  </div>
+                  <div>
+                    <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Aktive Policen</div>
+                    <div className={`text-2xl font-bold text-blue-600`}>{policies.length}</div>
+                  </div>
+                  <div>
+                    <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Dokumentiert</div>
+                    <div className={`text-2xl font-bold text-green-600`}>
+                      {policies.filter(p => p.file).length}/{policies.length}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Prämien-Vergleich mit Balken */}
+            {getPremiumBreakdown().length > 0 && (
+              <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
+                <h2 className={`font-semibold text-lg mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  💳 Monatliche Prämien-Übersicht
+                </h2>
+                <div className="space-y-4">
+                  {getPremiumBreakdown().map((item, idx) => {
+                    const maxMonthly = Math.max(...getPremiumBreakdown().map(p => p.monthly));
+                    const percentage = (item.monthly / maxMonthly) * 100;
+                    
+                    return (
+                      <div key={idx}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                            {item.type}
+                          </span>
+                          <span className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                            CHF {item.monthly}
+                          </span>
+                        </div>
+                        <div className={`w-full h-3 rounded-full overflow-hidden ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                          <div 
+                            className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-500"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className={`mt-4 pt-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'} text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Total pro Monat: <span className="font-bold">CHF {getPremiumBreakdown().reduce((sum, p) => sum + p.monthly, 0).toLocaleString('de-CH')}</span>
+                </div>
               </div>
             )}
           </div>
