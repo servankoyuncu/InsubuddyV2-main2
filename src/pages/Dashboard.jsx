@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { addPolicy, getUserPolicies, deletePolicy } from '../services/policyservice';
 import { getNotificationSettings, checkExpiringPolicies } from '../services/notificationService';
 import { addValuableItem, getUserValuableItems, deleteValuableItem, calculateTotalValue } from '../services/valuableItemsService';
-import { useAdmin } from '../hooks/useadmin';
+import { useAdmin } from '../hooks/useAdmin';
 
 function Dashboard() {
   const { currentUser, logout } = useAuth();
