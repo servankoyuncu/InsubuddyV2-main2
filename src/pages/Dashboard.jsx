@@ -4,7 +4,29 @@ import { useAuth } from '../context/AuthContext';
 import { addPolicy, getUserPolicies, deletePolicy } from '../services/policyservice';
 import { getNotificationSettings, checkExpiringPolicies } from '../services/notificationService';
 import { addValuableItem, getUserValuableItems, deleteValuableItem, calculateTotalValue } from '../services/valuableItemsService';
+import { useAdmin } from '/hooks/useAdmin';
 
+function Dashboard() {
+  const { isAdmin } = useAdmin();
+  
+  return (
+    <div>
+      {/* ... dein Dashboard Content */}
+      
+      {isAdmin && (
+        <div className="fixed bottom-4 right-4">
+          <button
+            onClick={() => navigate('/admin')}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg shadow-lg hover:bg-purple-700"
+          >
+            <Shield className="w-5 h-5" />
+            Admin Panel
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 function Dashboard() {
   const { currentUser, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
