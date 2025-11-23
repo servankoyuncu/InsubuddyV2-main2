@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { addPolicy, getUserPolicies, deletePolicy } from '../services/policyservice';
 import { getNotificationSettings, checkExpiringPolicies } from '../services/notificationService';
@@ -7,28 +8,9 @@ import { addValuableItem, getUserValuableItems, deleteValuableItem, calculateTot
 import { useAdmin } from '/hooks/useAdmin';
 
 function Dashboard() {
-  const { isAdmin } = useAdmin();
-  
-  return (
-    <div>
-      {/* ... dein Dashboard Content */}
-      
-      {isAdmin && (
-        <div className="fixed bottom-4 right-4">
-          <button
-            onClick={() => navigate('/admin')}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg shadow-lg hover:bg-purple-700"
-          >
-            <Shield className="w-5 h-5" />
-            Admin Panel
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-function Dashboard() {
   const { currentUser, logout } = useAuth();
+  const { isAdmin } = useAdmin();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState('de');
@@ -85,6 +67,8 @@ function Dashboard() {
     };
     loadPolicies();
   }, [currentUser]);
+
+  // ... rest deiner Datei bleibt gleich
 
   // Wertgegenstände laden beim Start
   useEffect(() => {
@@ -1390,12 +1374,25 @@ function Dashboard() {
                 src={selectedPDF.file.data}
                 className="w-full h-full"
                 title="PDF Viewer"
+                
               />
             </div>
           </div>
         </div>
       )}
-    </div>
+      {/* Admin Button - HIER EINFÜGEN, NACH allen Modals */}
+      {isAdmin && (
+        <div className="fixed bottom-20 right-4 z-40">
+          <button
+            onClick={() => navigate('/admin')}
+            className="flex items-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-colors"
+          >
+            <Shield className="w-5 h-5" />
+            Admin
+          </button>
+        </div>
+      )}
+    </div>  
   );
 }
 
