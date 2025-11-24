@@ -85,33 +85,28 @@ function Dashboard() {
     loadPolicies();
   }, [currentUser]);
 
-// Partner-Versicherungen laden
-useEffect(() => {
-  const loadPartnerInsurances = async () => {
-    try {
-      // Query OHNE orderBy (braucht keinen Index)
-      const q = query(
-        collection(db, 'partnerInsurances'),
-        where('status', '==', 'published')
-      );
-      const snapshot = await getDocs(q);
-      
-      // Sortierung im Code statt in Firestore
-      const partners = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
-      
-      setPartnerInsurances(partners);
-      console.log('🎯 Partner geladen:', partners.length, partners);
-      
-    } catch (error) {
-      console.error('Fehler beim Laden der Partner:', error);
-    }
-  };
-  
-  loadPartnerInsurances();
-}, []);
+  // Partner-Versicherungen laden
+  useEffect(() => {
+    const loadPartnerInsurances = async () => {
+      try {
+        const q = query(
+          collection(db, 'partnerInsurances'),
+          where('status', '==', 'published'),
+          orderBy('displayOrder', 'asc')
+        );
+        const snapshot = await getDocs(q);
+        const partners = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setPartnerInsurances(partners);
+      } catch (error) {
+        console.error('Fehler beim Laden der Partner:', error);
+      }
+    };
+    
+    loadPartnerInsurances();
+  }, []);
 
   // Wertgegenstände laden beim Start
   useEffect(() => {
@@ -1047,7 +1042,7 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* Alle Modals bleiben wie gehabt - QR Scanner, Biometric, Language, Notifications, Export, Add Policy, Add Item, Image Viewer, PDF Viewer */}
+      {/* Alle Modals */}
       {showQRScanner && (
         <div className="fixed inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center z-50">
           <div className="text-white mb-6 text-center">
@@ -1111,7 +1106,411 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Restliche Modals hier... (zu lang für vollständigen Code, aber vorhanden in Original) */}
+      {showNotifications && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center p-0 z-50">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-t-2xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col`}>
+            <div className={`p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-between`}>
+              <div>
+                <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('notifications')}</h2>
+                {unreadCount > 0 && <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{unreadCount} neue</p>}
+              </div>
+              <button onClick={() => setShowNotifications(false)} className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className={`px-4 py-2 flex gap-2 overflow-x-auto ${darkMode ? 'bg-gray-750' : 'bg-gray-50'}`}>
+              {['all', 'warning', 'reminder', 'info'].map(filter => (
+                <button
+                  key={filter}
+                  onClick={() => setNotificationFilter(filter)}
+                  className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${
+                    notificationFilter === filter ? 'bg-blue-600 text-white' : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-white text-gray-700'
+                  }`}
+                >
+                  {t(`filter_${filter}`)}
+                </button>
+              ))}
+            </div>
+
+            {unreadCount > 0 && (
+              <div className={`px-4 py-2 ${darkMode ? 'bg-gray-750' : 'bg-gray-50'}`}>
+                <button onClick={markAllAsRead} className="text-sm text-blue-600 font-medium">
+                  {t('mark_all_read')}
+                </button>
+              </div>
+            )}
+
+            <div className="flex-1 overflow-y-auto">
+              {filteredNotifications.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Bell className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+                  <p className={darkMode ? 'text-gray-400' : 'text-gray-600'}>{t('no_notifications')}</p>
+                </div>
+              ) : (
+                <div className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
+                  {filteredNotifications.map(notif => (
+                    <div key={notif.id} className={`p-4 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'} ${!notif.read ? (darkMode ? 'bg-gray-750' : 'bg-blue-50') : ''}`}>
+                      <div className="flex gap-3">
+                        {getNotificationIcon(notif.type)}
+                        <div className="flex-1">
+                          <div className={`font-medium ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
+                            {notif.isAuto ? notif.title_key : t(notif.title_key)}
+                          </div>
+                          {notif.message && (
+                            <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
+                              {notif.message}
+                            </div>
+                          )}
+                          <div className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'} mt-1`}>{notif.time}</div>
+                        </div>
+                        {!notif.read && <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showExportMenu && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center p-0 z-50">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-t-2xl w-full max-w-md p-6`}>
+            <h2 className={`text-xl font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('export_data')}</h2>
+            <div className="space-y-3">
+              <button onClick={() => setShowExportMenu(false)} className={`w-full text-left p-4 rounded-lg border ${darkMode ? 'border-gray-600 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'} flex items-center gap-3`}>
+                <Download className="w-5 h-5 text-blue-600" />
+                <div>
+                  <div className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('export_policies')}</div>
+                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>PDF Format</div>
+                </div>
+              </button>
+              <button onClick={() => setShowExportMenu(false)} className={`w-full text-left p-4 rounded-lg border ${darkMode ? 'border-gray-600 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'} flex items-center gap-3`}>
+                <Download className="w-5 h-5 text-green-600" />
+                <div>
+                  <div className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('export_vault')}</div>
+                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Excel Format</div>
+                </div>
+              </button>
+              <button onClick={() => setShowExportMenu(false)} className={`w-full text-left p-4 rounded-lg border ${darkMode ? 'border-gray-600 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'} flex items-center gap-3`}>
+                <Download className="w-5 h-5 text-purple-600" />
+                <div>
+                  <div className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('export_all')}</div>
+                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>ZIP Format</div>
+                </div>
+              </button>
+            </div>
+            <button onClick={() => setShowExportMenu(false)} className={`w-full mt-4 py-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              {t('cancel')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showAddPolicy && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg max-w-md w-full p-6`}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                {t('add_policy')}
+              </h2>
+              <button onClick={() => setShowAddPolicy(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  {t('policy_name')}
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="z.B. Hausratversicherung"
+                  value={policyName}
+                  onChange={(e) => setPolicyName(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  {t('policy_company')}
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="z.B. Helvetia"
+                  value={policyCompany}
+                  onChange={(e) => setPolicyCompany(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  {t('policy_type')}
+                </label>
+                <select 
+                  value={policyType}
+                  onChange={(e) => setPolicyType(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                >
+                  <option value="">{t('select_type')}</option>
+                  <option value={t('household')}>{t('household')}</option>
+                  <option value={t('car')}>{t('car')}</option>
+                  <option value={t('liability')}>{t('liability')}</option>
+                  <option value={t('health')}>{t('health')}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Jährliche Prämie (CHF)
+                </label>
+                <input 
+                  type="number" 
+                  placeholder="z.B. 1200"
+                  value={policyPremium}
+                  onChange={(e) => setPolicyPremium(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Ablaufdatum (optional)
+                </label>
+                <input 
+                  type="date" 
+                  value={policyExpiryDate}
+                  onChange={(e) => setPolicyExpiryDate(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  {t('upload_policy_pdf')}
+                </label>
+                <div className={`border-2 border-dashed rounded-lg p-6 text-center ${darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'}`}>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="pdf-upload"
+                  />
+                  <label htmlFor="pdf-upload" className="cursor-pointer">
+                    <Upload className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+                    <p className={`text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                      {t('select_pdf')}
+                    </p>
+                    <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
+                      {t('or_drag_drop')}
+                    </p>
+                    {uploadedFile && (
+                      <div className="mt-3 flex items-center justify-center gap-2 text-green-600">
+                        <CheckCircle className="w-5 h-5" />
+                        <span className="text-sm font-medium">{uploadedFile.name}</span>
+                      </div>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              <button 
+                onClick={handleSavePolicy}
+                disabled={loading}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loading ? 'Wird gespeichert...' : t('save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto`}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                Wertgegenstand hinzufügen
+              </h2>
+              <button onClick={() => { setShowAddItem(false); setItemImagePreview(null); }} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Name des Gegenstands *
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="z.B. MacBook Pro 16"
+                  value={itemName}
+                  onChange={(e) => setItemName(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Wert (CHF) *
+                </label>
+                <input 
+                  type="number" 
+                  placeholder="z.B. 3200"
+                  value={itemValue}
+                  onChange={(e) => setItemValue(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Kategorie *
+                </label>
+                <select 
+                  value={itemCategory}
+                  onChange={(e) => setItemCategory(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                >
+                  <option value="">Kategorie wählen</option>
+                  <option value="Elektronik">Elektronik</option>
+                  <option value="Schmuck">Schmuck</option>
+                  <option value="Möbel">Möbel</option>
+                  <option value="Fahrzeuge">Fahrzeuge (Velo, etc.)</option>
+                  <option value="Kunstwerke">Kunstwerke</option>
+                  <option value="Musikinstrumente">Musikinstrumente</option>
+                  <option value="Sonstiges">Sonstiges</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Kaufdatum (optional)
+                </label>
+                <input 
+                  type="date" 
+                  value={itemPurchaseDate}
+                  onChange={(e) => setItemPurchaseDate(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Foto/Quittung * (Pflichtfeld)
+                </label>
+                <div className={`border-2 border-dashed rounded-lg p-6 text-center ${darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'}`}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <label htmlFor="image-upload" className="cursor-pointer">
+                    {itemImagePreview ? (
+                      <div>
+                        <img src={itemImagePreview} alt="Vorschau" className="max-h-48 mx-auto rounded-lg mb-3" />
+                        <p className="text-sm text-green-600 font-medium">✓ Bild ausgewählt</p>
+                        <p className="text-xs text-gray-500 mt-1">Klicken um anderes Bild zu wählen</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Camera className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+                        <p className={`text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                          Foto aufnehmen oder auswählen
+                        </p>
+                        <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
+                          Klicken um Bild hochzuladen
+                        </p>
+                      </>
+                    )}
+                  </label>
+                </div>
+                <p className="text-xs text-red-600 mt-2">* Ein Foto ist erforderlich um den Gegenstand zu dokumentieren</p>
+              </div>
+
+              <button 
+                onClick={handleSaveItem}
+                disabled={loading || !itemImage}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loading ? 'Wird gespeichert...' : 'Speichern'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showImageViewer && selectedImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-4xl">
+            <div className="bg-gray-800 p-4 flex items-center justify-between rounded-t-lg">
+              <div className="text-white">
+                <h3 className="font-semibold">{selectedImage.name}</h3>
+                <p className="text-sm text-gray-300">CHF {parseFloat(selectedImage.value).toLocaleString('de-CH')}</p>
+              </div>
+              <button
+                onClick={() => setShowImageViewer(false)}
+                className="p-2 text-white hover:bg-gray-700 rounded-lg"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="bg-white rounded-b-lg p-4">
+              <img 
+                src={selectedImage.image.data} 
+                alt={selectedImage.name}
+                className="w-full h-auto max-h-[70vh] object-contain mx-auto"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPDFViewer && selectedPDF && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-4xl h-[90vh] bg-white rounded-lg overflow-hidden flex flex-col">
+            <div className="bg-gray-800 p-4 flex items-center justify-between">
+              <div className="text-white">
+                <h3 className="font-semibold">{selectedPDF.type} - {selectedPDF.company}</h3>
+                <p className="text-sm text-gray-300">{selectedPDF.file.name}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={selectedPDF.file.data}
+                  download={selectedPDF.file.name}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Herunterladen
+                </a>
+                <button
+                  onClick={() => setShowPDFViewer(false)}
+                  className="p-2 text-white hover:bg-gray-700 rounded-lg"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto bg-gray-100">
+              <iframe
+                src={selectedPDF.file.data}
+                className="w-full h-full"
+                title="PDF Viewer"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
