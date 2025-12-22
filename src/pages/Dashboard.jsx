@@ -1210,152 +1210,127 @@ function Dashboard() {
       )}
 
       {showAddPolicy && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-    <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto`}>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-          {t('add_policy')}
-        </h2>
-        <button onClick={() => setShowAddPolicy(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-          <X className="w-5 h-5" />
-        </button>
-      </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg max-w-md w-full p-6`}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                {t('add_policy')}
+              </h2>
+              <button onClick={() => setShowAddPolicy(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-      <div className="space-y-4">
-        
-        {/* ===== SCANNER - NEU! ===== */}
-        <PolicyScanner
-          onScanComplete={(parsed) => {
-            console.log('✅ Gescannte Daten:', parsed);
-            if (parsed.name) setPolicyName(parsed.name);
-            if (parsed.number) setPolicyCompany(parsed.number);
-            if (parsed.expiryDate) setPolicyExpiryDate(parsed.expiryDate);
-            if (parsed.amount) setPolicyPremium(parsed.amount);
-            alert('Police gescannt! Bitte Daten überprüfen.');
-          }}
-        />
-        
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className={`w-full border-t ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className={`px-2 ${darkMode ? 'bg-gray-800 text-gray-400' : 'bg-white text-gray-500'}`}>
-              oder manuell eingeben
-            </span>
-          </div>
-        </div>
-        {/* ===== ENDE SCANNER ===== */}
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  {t('policy_name')}
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="z.B. Hausratversicherung"
+                  value={policyName}
+                  onChange={(e) => setPolicyName(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
 
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-            {t('policy_name')}
-          </label>
-          <input 
-            type="text" 
-            placeholder="z.B. Hausratversicherung"
-            value={policyName}
-            onChange={(e) => setPolicyName(e.target.value)}
-            className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-          />
-        </div>
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  {t('policy_company')}
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="z.B. Helvetia"
+                  value={policyCompany}
+                  onChange={(e) => setPolicyCompany(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
 
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-            {t('policy_company')}
-          </label>
-          <input 
-            type="text" 
-            placeholder="z.B. Helvetia"
-            value={policyCompany}
-            onChange={(e) => setPolicyCompany(e.target.value)}
-            className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-          />
-        </div>
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  {t('policy_type')}
+                </label>
+                <select 
+                  value={policyType}
+                  onChange={(e) => setPolicyType(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                >
+                  <option value="">{t('select_type')}</option>
+                  <option value={t('household')}>{t('household')}</option>
+                  <option value={t('car')}>{t('car')}</option>
+                  <option value={t('liability')}>{t('liability')}</option>
+                  <option value={t('health')}>{t('health')}</option>
+                </select>
+              </div>
 
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-            {t('policy_type')}
-          </label>
-          <select 
-            value={policyType}
-            onChange={(e) => setPolicyType(e.target.value)}
-            className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-          >
-            <option value="">{t('select_type')}</option>
-            <option value={t('household')}>{t('household')}</option>
-            <option value={t('car')}>{t('car')}</option>
-            <option value={t('liability')}>{t('liability')}</option>
-            <option value={t('health')}>{t('health')}</option>
-          </select>
-        </div>
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Jährliche Prämie (CHF)
+                </label>
+                <input 
+                  type="number" 
+                  placeholder="z.B. 1200"
+                  value={policyPremium}
+                  onChange={(e) => setPolicyPremium(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
 
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-            Jährliche Prämie (CHF)
-          </label>
-          <input 
-            type="number" 
-            placeholder="z.B. 1200"
-            value={policyPremium}
-            onChange={(e) => setPolicyPremium(e.target.value)}
-            className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-          />
-        </div>
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Ablaufdatum (optional)
+                </label>
+                <input 
+                  type="date" 
+                  value={policyExpiryDate}
+                  onChange={(e) => setPolicyExpiryDate(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
 
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-            Ablaufdatum (optional)
-          </label>
-          <input 
-            type="date" 
-            value={policyExpiryDate}
-            onChange={(e) => setPolicyExpiryDate(e.target.value)}
-            className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-          />
-        </div>
-
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-            {t('upload_policy_pdf')}
-          </label>
-          <div className={`border-2 border-dashed rounded-lg p-6 text-center ${darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'}`}>
-            <input
-              type="file"
-              accept="application/pdf"
-              onChange={handleFileUpload}
-              className="hidden"
-              id="pdf-upload"
-            />
-            <label htmlFor="pdf-upload" className="cursor-pointer">
-              <Upload className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`} />
-              <p className={`text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                {t('select_pdf')}
-              </p>
-              <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
-                {t('or_drag_drop')}
-              </p>
-              {uploadedFile && (
-                <div className="mt-3 flex items-center justify-center gap-2 text-green-600">
-                  <CheckCircle className="w-5 h-5" />
-                  <span className="text-sm font-medium">{uploadedFile.name}</span>
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  {t('upload_policy_pdf')}
+                </label>
+                <div className={`border-2 border-dashed rounded-lg p-6 text-center ${darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'}`}>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="pdf-upload"
+                  />
+                  <label htmlFor="pdf-upload" className="cursor-pointer">
+                    <Upload className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+                    <p className={`text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                      {t('select_pdf')}
+                    </p>
+                    <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
+                      {t('or_drag_drop')}
+                    </p>
+                    {uploadedFile && (
+                      <div className="mt-3 flex items-center justify-center gap-2 text-green-600">
+                        <CheckCircle className="w-5 h-5" />
+                        <span className="text-sm font-medium">{uploadedFile.name}</span>
+                      </div>
+                    )}
+                  </label>
                 </div>
-              )}
-            </label>
+              </div>
+
+              <button 
+                onClick={handleSavePolicy}
+                disabled={loading}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loading ? 'Wird gespeichert...' : t('save')}
+              </button>
+            </div>
           </div>
         </div>
-
-        <button 
-          onClick={handleSavePolicy}
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? 'Wird gespeichert...' : t('save')}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      )}
 
       {showAddItem && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
