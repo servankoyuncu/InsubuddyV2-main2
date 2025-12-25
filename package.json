@@ -8,14 +8,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@capacitor/android": "^7.4.4",
-    "@capacitor/cli": "^7.4.4",
-    "@capacitor/core": "^7.4.4",
+    "@capacitor/android": "^6.0.2",
+    "@capacitor/camera": "^6.0.2",
+    "@capacitor/cli": "^6.0.2",
+    "@capacitor/core": "^6.0.2",
+    "@capacitor/ios": "^6.0.2",
     "firebase": "^12.6.0",
     "lucide-react": "^0.263.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^7.9.6"
+    "react-router-dom": "^7.9.6",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.0",
