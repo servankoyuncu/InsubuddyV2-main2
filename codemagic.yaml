@@ -15,16 +15,13 @@ workflows:
         script: npx cap sync ios
       - name: Install CocoaPods
         script: cd ios/App && pod install
-      - name: Configure Team ID (Neu)
-        script: |
-          # Schreibt deine Team-ID direkt in das Xcode-Projekt
-          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = TBZ9DV89WH;/g' ios/App/App.xcodeproj/project.pbxproj
-          # Erzwingt Automatic Signing
-          sed -i '' 's/ProvisioningStyle = Manual;/ProvisioningStyle = Automatic;/g' ios/App/App.xcodeproj/project.pbxproj
       - name: Set up Provisioning Profiles
         script: xcode-project use-profiles
       - name: Build IPA
         script: |
+          # Wir setzen die Variablen direkt für die Session
+          export APP_STORE_CONNECT_TEAM_ID="TBZ9DV89WH"
+          
           xcode-project build-ipa \
             --workspace "ios/App/App.xcworkspace" \
             --scheme "App"
