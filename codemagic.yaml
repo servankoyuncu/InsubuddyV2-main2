@@ -1,7 +1,7 @@
 workflows:
   ios-release:
     name: iOS Release InsuBuddy
-    instance_type: mac_mini_m2 # Verschoben: Muss direkt unter den Workflow-Namen
+    instance_type: mac_mini_m2
     environment:
       xcode: latest
       node: latest
@@ -22,6 +22,5 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-      # Diese Zeile behebt den zweiten Fehler:
-      integrations:
-        app_store_connect: "InsuBuddy Key" InsuBuddy Connect
+    integrations:
+      app_store_connect: "InsuBuddy Connect"
