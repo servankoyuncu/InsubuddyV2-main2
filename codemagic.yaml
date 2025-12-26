@@ -15,6 +15,18 @@ workflows:
       - name: Install CocoaPods
         script: cd ios/App && pod install
       - name: Build IPA
+        scripts:
+      - name: Install Dependencies
+        script: npm install
+      - name: Build Web App
+        script: npm run build
+      - name: Sync Capacitor
+        script: npx cap sync ios
+      - name: Install CocoaPods
+        script: cd ios/App && pod install
+      - name: Fetch Profiles (Neu)
+        script: xcode-project use-profiles # Holt Zertifikate von Apple ab
+      - name: Build IPA
         script: |
           xcode-project build-ipa \
             --workspace "ios/App/App.xcworkspace" \
