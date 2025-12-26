@@ -1,9 +1,8 @@
 workflows:
   ios-release:
     name: iOS Release InsuBuddy
+    instance_type: mac_mini_m2 # Verschoben: Muss direkt unter den Workflow-Namen
     environment:
-      # Wir nutzen einen Mac in der Cloud
-      instance_type: mac_mini_m2
       xcode: latest
       node: latest
     scripts:
@@ -17,13 +16,12 @@ workflows:
         script: cd ios/App && pod install
       - name: Build IPA
         script: |
-          # Hier baut Codemagic die App automatisch
           xcode-project build-ipa \
             --workspace "ios/App/App.xcworkspace" \
             --scheme "App"
     publishing:
       app_store_connect:
-        # Hier greift er auf den Key zu, den du in Schritt 1 hochgeladen hast
         auth: integration
-        # Lädt es direkt in TestFlight hoch
-        submit_to_testflight: true
+      # Diese Zeile behebt den zweiten Fehler:
+      integrations:
+        app_store_connect: "InsuBuddy Key" # Hier den Namen deines Keys aus den Einstellungen eintragen
