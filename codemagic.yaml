@@ -15,14 +15,18 @@ workflows:
         script: npx cap sync ios
       - name: Install CocoaPods
         script: cd ios/App && pod install
+      - name: Fix Xcode Project Signing (Neu)
+        script: |
+          # Dieses Skript zwingt das Projekt auf Automatic Signing
+          sed -i '' 's/ProvisioningStyle = Manual;/ProvisioningStyle = Automatic;/g' ios/App/App.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Automatic;/g' ios/App/App.xcodeproj/project.pbxproj
       - name: Set up Provisioning Profiles
         script: xcode-project use-profiles
       - name: Build IPA
         script: |
           xcode-project build-ipa \
             --workspace "ios/App/App.xcworkspace" \
-            --scheme "App" \
-            --code-signing-method manual
+            --scheme "App"
     publishing:
       app_store_connect:
         auth: integration
