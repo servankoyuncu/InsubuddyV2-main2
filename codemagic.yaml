@@ -16,12 +16,13 @@ workflows:
       - name: Install CocoaPods
         script: cd ios/App && pod install
       - name: Set up Provisioning Profiles
-        script: xcode-project use-profiles # Ohne das --bundle-id Flag
+        script: xcode-project use-profiles
       - name: Build IPA
         script: |
           xcode-project build-ipa \
             --workspace "ios/App/App.xcworkspace" \
-            --scheme "App"
+            --scheme "App" \
+            --code-signing-method manual
     publishing:
       app_store_connect:
         auth: integration
