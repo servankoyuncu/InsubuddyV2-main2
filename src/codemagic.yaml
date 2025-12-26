@@ -1,0 +1,29 @@
+workflows:
+  ios-release:
+    name: iOS Release InsuBuddy
+    environment:
+      # Wir nutzen einen Mac in der Cloud
+      instance_type: mac_mini_m2
+      xcode: latest
+      node: latest
+    scripts:
+      - name: Install Dependencies
+        script: npm install
+      - name: Build Web App
+        script: npm run build
+      - name: Sync Capacitor
+        script: npx cap sync ios
+      - name: Install CocoaPods
+        script: cd ios/App && pod install
+      - name: Build IPA
+        script: |
+          # Hier baut Codemagic die App automatisch
+          xcode-project build-ipa \
+            --workspace "ios/App/App.xcworkspace" \
+            --scheme "App"
+    publishing:
+      app_store_connect:
+        # Hier greift er auf den Key zu, den du in Schritt 1 hochgeladen hast
+        auth: integration
+        # Lädt es direkt in TestFlight hoch
+        submit_to_testflight: true
