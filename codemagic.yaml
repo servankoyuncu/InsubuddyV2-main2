@@ -15,8 +15,8 @@ workflows:
         script: npx cap sync ios
       - name: Install CocoaPods
         script: cd ios/App && pod install
-      - name: Fetch Profiles
-        script: xcode-project use-profiles
+      - name: Set up Provisioning Profiles
+        script: xcode-project use-profiles --bundle-id "com.insubuddy.app" # Erzwingt die korrekte ID
       - name: Build IPA
         script: |
           xcode-project build-ipa \
