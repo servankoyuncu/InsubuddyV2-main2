@@ -24,4 +24,4 @@ workflows:
         auth: integration
       # Diese Zeile behebt den zweiten Fehler:
       integrations:
-        app_store_connect: "InsuBuddy Key" # Hier den Namen deines Keys aus den Einstellungen eintragen
+        app_store_connect: "InsuBuddy Key" InsuBuddy Connect
