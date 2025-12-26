@@ -16,7 +16,7 @@ workflows:
       - name: Install CocoaPods
         script: cd ios/App && pod install
       - name: Set up Provisioning Profiles
-        script: xcode-project use-profiles --bundle-id "com.insubuddy.app" # Erzwingt die korrekte ID
+        script: xcode-project use-profiles # Ohne das --bundle-id Flag
       - name: Build IPA
         script: |
           xcode-project build-ipa \
