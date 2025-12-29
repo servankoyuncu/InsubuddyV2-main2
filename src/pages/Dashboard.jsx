@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { addPolicy, getUserPolicies, deletePolicy } from '../services/policyservice';
 import { getNotificationSettings, checkExpiringPolicies } from '../services/notificationService';
 import { addValuableItem, getUserValuableItems, deleteValuableItem, calculateTotalValue } from '../services/valuableItemsService';
+import { getActiveAdminNotifications } from '../services/adminNotificationService';
 import { useAdmin } from '../hooks/useAdmin';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -195,6 +196,8 @@ function Dashboard() {
   // Benachrichtigungs State
   const [notificationSettings, setNotificationSettings] = useState({ enabled: true, reminderDays: 30 });
   const [autoNotifications, setAutoNotifications] = useState([]);
+  const [adminNotifications, setAdminNotifications] = useState([]);
+  const [readAdminNotifications, setReadAdminNotifications] = useState([]);
   
   // Partner-Versicherungen State
   const [partnerInsurances, setPartnerInsurances] = useState([]);
@@ -277,6 +280,29 @@ function Dashboard() {
     loadSettings();
   }, [currentUser]);
 
+  // Admin Notifications laden
+  useEffect(() => {
+    const loadAdminNotifications = async () => {
+      console.log('🔍 Lade Admin Notifications...');
+      const adminNotifs = await getActiveAdminNotifications();
+      console.log('📢 Admin Notifications geladen:', adminNotifs);
+      setAdminNotifications(adminNotifs);
+    };
+    loadAdminNotifications();
+  }, []);
+
+  // Gelesene Admin Notifications aus localStorage laden
+  useEffect(() => {
+    try {
+      const read = localStorage.getItem('readAdminNotifications');
+      if (read) {
+        setReadAdminNotifications(JSON.parse(read));
+      }
+    } catch (error) {
+      console.error('Fehler beim Laden der gelesenen Notifications:', error);
+    }
+  }, []);
+
   // Automatische Benachrichtigungen generieren wenn Policen oder Einstellungen sich ändern
   useEffect(() => {
     if (notificationSettings.enabled && policies.length > 0) {
@@ -316,8 +342,8 @@ function Dashboard() {
       liability: 'Haftpflicht',
       health: 'Krankenkasse',
       filter_all: 'Alle',
-      filter_warnings: 'Warnungen',
-      filter_reminders: 'Erinnerungen',
+      filter_warning: 'Warnungen',
+      filter_reminder: 'Erinnerungen',
       filter_info: 'Info',
       export_data: 'Daten exportieren',
       export_policies: 'Policen PDF',
@@ -374,8 +400,8 @@ function Dashboard() {
       liability: 'Liability',
       health: 'Health',
       filter_all: 'All',
-      filter_warnings: 'Warnings',
-      filter_reminders: 'Reminders',
+      filter_warning: 'Warnings',
+      filter_reminder: 'Reminders',
       filter_info: 'Info',
       export_data: 'Export Data',
       export_policies: 'Policies PDF',
@@ -415,6 +441,18 @@ function Dashboard() {
 
   // Alle Benachrichtigungen zusammenführen
   const allNotifications = [
+    ...adminNotifications
+      .filter(n => !readAdminNotifications.includes(n.id)) // Nur ungelesene
+      .map(n => ({
+        id: `admin-${n.id}`,
+        adminId: n.id,
+        type: n.type,
+        title_key: n.title,
+        message: n.message,
+        time: n.createdAt ? new Date(n.createdAt).toLocaleDateString('de-CH', { day: '2-digit', month: 'short' }) : 'Neu',
+        read: false,
+        isAdmin: true
+      })),
     ...autoNotifications.map(n => ({
       id: n.id,
       type: n.type === 'critical' ? 'warning' : n.type,
@@ -426,6 +464,9 @@ function Dashboard() {
     })),
     ...notifications
   ];
+
+  console.log('🔔 Alle Notifications:', allNotifications);
+  console.log('📢 Admin Notifications State:', adminNotifications);
 
   const filteredNotifications = allNotifications.filter(n => {
     if (notificationFilter === 'all') return true;
@@ -440,6 +481,13 @@ function Dashboard() {
   const markAllAsRead = () => {
     setNotifications(notifications.map(n => ({ ...n, read: true })));
     setAutoNotifications(autoNotifications.map(n => ({ ...n, read: true })));
+  };
+
+  // Admin Notification als gelesen markieren
+  const markAdminNotificationAsRead = (notificationId) => {
+    const newRead = [...readAdminNotifications, notificationId];
+    setReadAdminNotifications(newRead);
+    localStorage.setItem('readAdminNotifications', JSON.stringify(newRead));
   };
 
   const handleFileUpload = (event) => {
@@ -1452,8 +1500,397 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Restliche Modals - identisch zur vorherigen Version */}
-      {/* Alle anderen Modals bleiben unverändert */}
+      {/* QR Scanner Modal */}
+      {showQRScanner && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center z-50">
+          <div className="text-white mb-6 text-center">
+            <h2 className="text-xl font-semibold mb-2">{t('qr_scanner')}</h2>
+            <p className="text-sm opacity-75">{t('scan_instruction')}</p>
+          </div>
+          <div className="relative w-64 h-64 border-4 border-blue-500 rounded-lg">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <QrCode className="w-32 h-32 text-blue-500 animate-pulse" />
+            </div>
+          </div>
+          <button onClick={() => setShowQRScanner(false)} className="mt-8 px-6 py-2 bg-white text-gray-900 rounded-lg">
+            {t('cancel')}
+          </button>
+        </div>
+      )}
+
+      {/* Biometric Setup Modal */}
+      {showBiometricSetup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg max-w-md w-full p-6`}>
+            <div className="text-center mb-6">
+              <div className={`w-20 h-20 mx-auto mb-4 rounded-full ${darkMode ? 'bg-gray-700' : 'bg-blue-100'} flex items-center justify-center`}>
+                <Fingerprint className={`w-10 h-10 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+              </div>
+              <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('biometric_setup_title')}</h2>
+              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('biometric_setup_desc')}</p>
+            </div>
+            <button onClick={() => { setBiometricEnabled(true); setShowBiometricSetup(false); }} className="w-full bg-blue-600 text-white py-3 rounded-lg mb-3">
+              {t('setup_now')}
+            </button>
+            <button onClick={() => setShowBiometricSetup(false)} className={`w-full py-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              {t('cancel')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Language Menu Modal */}
+      {showLanguageMenu && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg max-w-sm w-full p-6`}>
+            <h2 className={`text-xl font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('language')}</h2>
+            <div className="space-y-2 mb-6">
+              {languages.map(lang => (
+                <button
+                  key={lang.code}
+                  onClick={() => { setLanguage(lang.code); setShowLanguageMenu(false); }}
+                  className={`w-full text-left p-3 rounded-lg flex items-center gap-3 ${
+                    language === lang.code ? 'bg-blue-600 text-white' : darkMode ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-900'
+                  }`}
+                >
+                  <span className="text-2xl">{lang.flag}</span>
+                  <span className="font-medium">{lang.name}</span>
+                  {language === lang.code && <CheckCircle className="w-5 h-5 ml-auto" />}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setShowLanguageMenu(false)} className={`w-full py-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              {t('cancel')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Notifications Modal */}
+      {showNotifications && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center p-0 z-50">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-t-2xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col`}>
+            <div className={`p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-between`}>
+              <div>
+                <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('notifications')}</h2>
+                {unreadCount > 0 && <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{unreadCount} neue</p>}
+              </div>
+              <button onClick={() => setShowNotifications(false)} className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className={`px-4 py-2 flex gap-2 overflow-x-auto ${darkMode ? 'bg-gray-750' : 'bg-gray-50'}`}>
+              {['all', 'warning', 'reminder', 'info'].map(filter => (
+                <button
+                  key={filter}
+                  onClick={() => setNotificationFilter(filter)}
+                  className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${
+                    notificationFilter === filter ? 'bg-blue-600 text-white' : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-white text-gray-700'
+                  }`}
+                >
+                  {t(`filter_${filter}`)}
+                </button>
+              ))}
+            </div>
+
+            {unreadCount > 0 && (
+              <div className={`px-4 py-2 ${darkMode ? 'bg-gray-750' : 'bg-gray-50'}`}>
+                <button onClick={markAllAsRead} className="text-sm text-blue-600 font-medium">
+                  {t('mark_all_read')}
+                </button>
+              </div>
+            )}
+
+            <div className="flex-1 overflow-y-auto">
+              {filteredNotifications.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Bell className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+                  <p className={darkMode ? 'text-gray-400' : 'text-gray-600'}>{t('no_notifications')}</p>
+                </div>
+              ) : (
+                <div className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
+                  {filteredNotifications.map(notif => (
+                    <div key={notif.id} className={`p-4 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'} ${!notif.read ? (darkMode ? 'bg-gray-750' : 'bg-blue-50') : ''}`}>
+                      <div className="flex gap-3">
+                        {getNotificationIcon(notif.type)}
+                        <div className="flex-1">
+                          <div className={`font-medium ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
+                            {notif.isAuto || notif.isAdmin ? notif.title_key : t(notif.title_key)}
+                          </div>
+                          {notif.message && (
+                            <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
+                              {notif.message}
+                            </div>
+                          )}
+                          <div className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'} mt-1`}>{notif.time}</div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          {notif.isAdmin && (
+                            <button
+                              onClick={() => markAdminNotificationAsRead(notif.adminId)}
+                              className={`p-1 rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
+                              title="Als gelesen markieren"
+                            >
+                              <X className="w-4 h-4 text-gray-400" />
+                            </button>
+                          )}
+                          {!notif.read && !notif.isAdmin && <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Menu Modal */}
+      {showExportMenu && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center p-0 z-50">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-t-2xl w-full max-w-md p-6 max-h-[70vh] overflow-y-auto`}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Policen PDFs exportieren</h2>
+              <button onClick={() => setShowExportMenu(false)} className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {policies.filter(p => p.file).length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Keine PDFs vorhanden
+                </p>
+                <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                  Laden Sie zuerst Policen-PDFs hoch
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {policies.filter(p => p.file).length} PDF{policies.filter(p => p.file).length !== 1 ? 's' : ''} verfügbar
+                </p>
+                {policies.filter(p => p.file).map((policy, idx) => (
+                  <button 
+                    key={idx}
+                    onClick={() => {
+                      // PDF herunterladen
+                      const link = document.createElement('a');
+                      link.href = policy.file.data;
+                      link.download = policy.file.name || `${policy.type}-${policy.company}.pdf`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                    className={`w-full text-left p-4 rounded-lg border ${darkMode ? 'border-gray-600 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'} flex items-center gap-3`}
+                  >
+                    <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className={`font-medium truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {policy.type} - {policy.company}
+                      </div>
+                      <div className={`text-sm truncate ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {policy.file.name}
+                      </div>
+                    </div>
+                    <Download className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                  </button>
+                ))}
+              </div>
+            )}
+            
+            <button onClick={() => setShowExportMenu(false)} className={`w-full mt-4 py-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Schliessen
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Add Item Modal */}
+      {showAddItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto`}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                Wertgegenstand hinzufügen
+              </h2>
+              <button onClick={() => { setShowAddItem(false); setItemImagePreview(null); }} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Name des Gegenstands *
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="z.B. MacBook Pro 16"
+                  value={itemName}
+                  onChange={(e) => setItemName(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Wert (CHF) *
+                </label>
+                <input 
+                  type="number" 
+                  placeholder="z.B. 3200"
+                  value={itemValue}
+                  onChange={(e) => setItemValue(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Kategorie *
+                </label>
+                <select 
+                  value={itemCategory}
+                  onChange={(e) => setItemCategory(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                >
+                  <option value="">Kategorie wählen</option>
+                  <option value="Elektronik">Elektronik</option>
+                  <option value="Schmuck">Schmuck</option>
+                  <option value="Möbel">Möbel</option>
+                  <option value="Fahrzeuge">Fahrzeuge (Velo, etc.)</option>
+                  <option value="Kunstwerke">Kunstwerke</option>
+                  <option value="Musikinstrumente">Musikinstrumente</option>
+                  <option value="Sonstiges">Sonstiges</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Kaufdatum (optional)
+                </label>
+                <input 
+                  type="date" 
+                  value={itemPurchaseDate}
+                  onChange={(e) => setItemPurchaseDate(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  Foto/Quittung * (Pflichtfeld)
+                </label>
+                <div className={`border-2 border-dashed rounded-lg p-6 text-center ${darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'}`}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <label htmlFor="image-upload" className="cursor-pointer">
+                    {itemImagePreview ? (
+                      <div>
+                        <img src={itemImagePreview} alt="Vorschau" className="max-h-48 mx-auto rounded-lg mb-3" />
+                        <p className="text-sm text-green-600 font-medium">✓ Bild ausgewählt</p>
+                        <p className="text-xs text-gray-500 mt-1">Klicken um anderes Bild zu wählen</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Camera className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+                        <p className={`text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                          Foto aufnehmen oder auswählen
+                        </p>
+                        <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
+                          Klicken um Bild hochzuladen
+                        </p>
+                      </>
+                    )}
+                  </label>
+                </div>
+                <p className="text-xs text-red-600 mt-2">* Ein Foto ist erforderlich um den Gegenstand zu dokumentieren</p>
+              </div>
+
+              <button 
+                onClick={handleSaveItem}
+                disabled={loading || !itemImage}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loading ? 'Wird gespeichert...' : 'Speichern'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Viewer Modal */}
+      {showImageViewer && selectedImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-4xl">
+            <div className="bg-gray-800 p-4 flex items-center justify-between rounded-t-lg">
+              <div className="text-white">
+                <h3 className="font-semibold">{selectedImage.name}</h3>
+                <p className="text-sm text-gray-300">CHF {parseFloat(selectedImage.value).toLocaleString('de-CH')}</p>
+              </div>
+              <button
+                onClick={() => setShowImageViewer(false)}
+                className="p-2 text-white hover:bg-gray-700 rounded-lg"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="bg-white rounded-b-lg p-4">
+              <img 
+                src={selectedImage.image.data} 
+                alt={selectedImage.name}
+                className="w-full h-auto max-h-[70vh] object-contain mx-auto"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PDF Viewer Modal */}
+      {showPDFViewer && selectedPDF && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-4xl h-[90vh] bg-white rounded-lg overflow-hidden flex flex-col">
+            <div className="bg-gray-800 p-4 flex items-center justify-between">
+              <div className="text-white">
+                <h3 className="font-semibold">{selectedPDF.type} - {selectedPDF.company}</h3>
+                <p className="text-sm text-gray-300">{selectedPDF.file.name}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={selectedPDF.file.data}
+                  download={selectedPDF.file.name}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Herunterladen
+                </a>
+                <button
+                  onClick={() => setShowPDFViewer(false)}
+                  className="p-2 text-white hover:bg-gray-700 rounded-lg"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto bg-gray-100">
+              <iframe
+                src={selectedPDF.file.data}
+                className="w-full h-full"
+                title="PDF Viewer"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
