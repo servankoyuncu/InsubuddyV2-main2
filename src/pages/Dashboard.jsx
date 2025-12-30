@@ -1290,7 +1290,7 @@ function Dashboard() {
         )}
       </div>
 
-      <div className={`fixed bottom-0 left-0 right-0 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-t px-4 py-2`}>
+      <div className={`fixed bottom-0 left-0 right-0 z-50 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-t px-4 py-2`}>
         <div className="max-w-4xl mx-auto flex justify-around">
           <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center gap-1 py-2 px-4 ${activeTab === 'dashboard' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             <Home className="w-6 h-6" />
