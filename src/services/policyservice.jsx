@@ -1,14 +1,15 @@
 import { db } from '../firebase';
-import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  deleteDoc, 
-  doc, 
-  query, 
+import {
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc,
+  query,
   where,
-  updateDoc 
+  updateDoc
 } from 'firebase/firestore';
+import { saveFinancialSnapshot } from './financialService';
 
 // Datei zu Base64 konvertieren
 const fileToBase64 = (file) => {
@@ -24,7 +25,7 @@ const fileToBase64 = (file) => {
 export const addPolicy = async (userId, policyData, file = null) => {
   try {
     let fileData = null;
-    
+
     if (file) {
       const base64 = await fileToBase64(file);
       fileData = {
@@ -43,7 +44,18 @@ export const addPolicy = async (userId, policyData, file = null) => {
     };
 
     const docRef = await addDoc(collection(db, 'policies'), policy);
-    return { id: docRef.id, ...policy };
+    const newPolicy = { id: docRef.id, ...policy };
+
+    // Trigger financial snapshot update
+    try {
+      const allPolicies = await getUserPolicies(userId);
+      await saveFinancialSnapshot(userId, allPolicies);
+    } catch (snapshotError) {
+      console.error('Error saving financial snapshot:', snapshotError);
+      // Don't fail the whole operation if snapshot fails
+    }
+
+    return newPolicy;
   } catch (error) {
     console.error('Fehler beim Hinzufügen der Police:', error);
     throw error;
@@ -71,7 +83,27 @@ export const getUserPolicies = async (userId) => {
 // Police löschen
 export const deletePolicy = async (policyId) => {
   try {
-    await deleteDoc(doc(db, 'policies', policyId));
+    // Get policy to find userId before deleting
+    const policyRef = doc(db, 'policies', policyId);
+    const policyDoc = await getDocs(query(collection(db, 'policies'), where('__name__', '==', policyId)));
+    let userId = null;
+
+    if (!policyDoc.empty) {
+      userId = policyDoc.docs[0].data().userId;
+    }
+
+    await deleteDoc(policyRef);
+
+    // Trigger financial snapshot update
+    if (userId) {
+      try {
+        const allPolicies = await getUserPolicies(userId);
+        await saveFinancialSnapshot(userId, allPolicies);
+      } catch (snapshotError) {
+        console.error('Error saving financial snapshot:', snapshotError);
+        // Don't fail the whole operation if snapshot fails
+      }
+    }
   } catch (error) {
     console.error('Fehler beim Löschen der Police:', error);
     throw error;
@@ -79,13 +111,24 @@ export const deletePolicy = async (policyId) => {
 };
 
 // Police aktualisieren
-export const updatePolicy = async (policyId, updates) => {
+export const updatePolicy = async (policyId, updates, userId = null) => {
   try {
     const policyRef = doc(db, 'policies', policyId);
     await updateDoc(policyRef, {
       ...updates,
       updatedAt: new Date().toISOString()
     });
+
+    // Trigger financial snapshot update
+    if (userId) {
+      try {
+        const allPolicies = await getUserPolicies(userId);
+        await saveFinancialSnapshot(userId, allPolicies);
+      } catch (snapshotError) {
+        console.error('Error saving financial snapshot:', snapshotError);
+        // Don't fail the whole operation if snapshot fails
+      }
+    }
   } catch (error) {
     console.error('Fehler beim Aktualisieren der Police:', error);
     throw error;

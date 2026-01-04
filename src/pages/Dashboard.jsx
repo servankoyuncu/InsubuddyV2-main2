@@ -9,6 +9,7 @@ import { getActiveAdminNotifications } from '../services/adminNotificationServic
 import { useAdmin } from '../hooks/useAdmin';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
+import FinancialDashboard from '../components/FinancialDashboard';
 
 // Deckungen-Templates mit detaillierten Beschreibungen
 const coverageTemplates = {
@@ -320,6 +321,7 @@ function Dashboard() {
       tab_overview: 'Übersicht',
       tab_policies: 'Policen',
       tab_vault: 'Tresor',
+      tab_finances: 'Finanzen',
       tab_profile: 'Profil',
       active_policies: 'Aktive Policen',
       secured_values: 'Gesicherte Werte',
@@ -378,6 +380,7 @@ function Dashboard() {
       tab_overview: 'Overview',
       tab_policies: 'Policies',
       tab_vault: 'Vault',
+      tab_finances: 'Finances',
       tab_profile: 'Profile',
       active_policies: 'Active Policies',
       secured_values: 'Secured Values',
@@ -1155,6 +1158,15 @@ function Dashboard() {
           </div>
         )}
 
+        {activeTab === 'finances' && (
+          <FinancialDashboard
+            policies={policies}
+            darkMode={darkMode}
+            language={language}
+            currentUser={currentUser}
+          />
+        )}
+
         {activeTab === 'profile' && (
           <div className="space-y-4">
             <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white p-6 rounded-lg">
@@ -1303,6 +1315,10 @@ function Dashboard() {
           <button onClick={() => setActiveTab('vault')} className={`flex flex-col items-center gap-1 py-2 px-4 ${activeTab === 'vault' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             <Camera className="w-6 h-6" />
             <span className="text-xs">{t('tab_vault')}</span>
+          </button>
+          <button onClick={() => setActiveTab('finances')} className={`flex flex-col items-center gap-1 py-2 px-4 ${activeTab === 'finances' ? 'text-green-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            <TrendingUp className="w-6 h-6" />
+            <span className="text-xs">{t('tab_finances')}</span>
           </button>
           <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center gap-1 py-2 px-4 ${activeTab === 'profile' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             <User className="w-6 h-6" />

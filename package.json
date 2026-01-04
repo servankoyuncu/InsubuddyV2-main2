@@ -1,6 +1,6 @@
 {
   "name": "insubuddy",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,11 +13,13 @@
     "@capacitor/cli": "^6.0.2",
     "@capacitor/core": "^6.0.2",
     "@capacitor/ios": "^6.0.2",
+    "date-fns": "^4.1.0",
     "firebase": "^12.6.0",
     "lucide-react": "^0.263.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.9.6",
+    "recharts": "^3.6.0",
     "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
