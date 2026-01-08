@@ -217,12 +217,12 @@ function Dashboard() {
     { value: 'pet', label: 'Tierversicherung' }
   ];
 
-  // Policen laden beim Start
+  // 1. Policen laden beim Start
   useEffect(() => {
     const loadPolicies = async () => {
-      if (currentUser) {
+      if (currentUser?.id) { // Fix: .id statt .uid
         try {
-          const userPolicies = await getUserPolicies(currentUser.uid);
+          const userPolicies = await getUserPolicies(currentUser.id);
           setPolicies(userPolicies);
         } catch (error) {
           console.error('Fehler beim Laden der Policen:', error);
@@ -232,21 +232,18 @@ function Dashboard() {
     loadPolicies();
   }, [currentUser]);
 
-  // Partner-Versicherungen laden
+  // 2. Partner-Versicherungen laden (UMGESTELLT AUF SUPABASE)
   useEffect(() => {
     const loadPartnerInsurances = async () => {
       try {
-        const q = query(
-          collection(db, 'partnerInsurances'),
-          where('status', '==', 'published'),
-          orderBy('displayOrder', 'asc')
-        );
-        const snapshot = await getDocs(q);
-        const partners = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setPartnerInsurances(partners);
+        const { data, error } = await supabase
+          .from('partner_insurances')
+          .select('*')
+          .eq('status', 'published')
+          .order('display_order', { ascending: true });
+
+        if (error) throw error;
+        setPartnerInsurances(data || []);
       } catch (error) {
         console.error('Fehler beim Laden der Partner:', error);
       }
@@ -255,12 +252,12 @@ function Dashboard() {
     loadPartnerInsurances();
   }, []);
 
-  // Wertgegenstände laden beim Start
+  // 3. Wertgegenstände laden beim Start
   useEffect(() => {
     const loadItems = async () => {
-      if (currentUser) {
+      if (currentUser?.id) { // Fix: .id statt .uid
         try {
-          const items = await getUserValuableItems(currentUser.uid);
+          const items = await getUserValuableItems(currentUser.id);
           setValuableItems(items);
         } catch (error) {
           console.error('Fehler beim Laden der Wertgegenstände:', error);
@@ -270,29 +267,35 @@ function Dashboard() {
     loadItems();
   }, [currentUser]);
 
-  // Benachrichtigungs-Einstellungen laden
+  // 4. Benachrichtigungs-Einstellungen laden
   useEffect(() => {
     const loadSettings = async () => {
-      if (currentUser) {
-        const settings = await getNotificationSettings(currentUser.uid);
-        setNotificationSettings(settings);
+      if (currentUser?.id) { // Fix: .id statt .uid
+        try {
+          const settings = await getNotificationSettings(currentUser.id);
+          if (settings) setNotificationSettings(settings);
+        } catch (error) {
+          console.error('Fehler beim Laden der Einstellungen:', error);
+        }
       }
     };
     loadSettings();
   }, [currentUser]);
 
-  // Admin Notifications laden
+  // 5. Admin Notifications laden
   useEffect(() => {
     const loadAdminNotifications = async () => {
-      console.log('🔍 Lade Admin Notifications...');
-      const adminNotifs = await getActiveAdminNotifications();
-      console.log('📢 Admin Notifications geladen:', adminNotifs);
-      setAdminNotifications(adminNotifs);
+      try {
+        const adminNotifs = await getActiveAdminNotifications();
+        setAdminNotifications(adminNotifs || []);
+      } catch (error) {
+        console.error('Fehler bei Admin-Notifications:', error);
+      }
     };
     loadAdminNotifications();
   }, []);
 
-  // Gelesene Admin Notifications aus localStorage laden
+  // 6. Gelesene Admin Notifications aus localStorage laden
   useEffect(() => {
     try {
       const read = localStorage.getItem('readAdminNotifications');
@@ -304,11 +307,11 @@ function Dashboard() {
     }
   }, []);
 
-  // Automatische Benachrichtigungen generieren wenn Policen oder Einstellungen sich ändern
+  // 7. Automatische Benachrichtigungen generieren
   useEffect(() => {
-    if (notificationSettings.enabled && policies.length > 0) {
+    if (notificationSettings?.enabled && policies?.length > 0) {
       const newNotifications = checkExpiringPolicies(policies, notificationSettings.reminderDays);
-      setAutoNotifications(newNotifications);
+      setAutoNotifications(newNotifications || []);
     } else {
       setAutoNotifications([]);
     }
@@ -520,10 +523,11 @@ function Dashboard() {
         status: 'ok'
       };
 
-      await addPolicy(currentUser.uid, policyData, uploadedFile);
+      // FIX: Hier muss currentUser.id stehen (nicht .uid)
+      await addPolicy(currentUser.id, policyData, uploadedFile);
       
-      // Policen neu laden
-      const updatedPolicies = await getUserPolicies(currentUser.uid);
+      // Policen neu laden (auch mit .id)
+      const updatedPolicies = await getUserPolicies(currentUser.id);
       setPolicies(updatedPolicies);
       
       // Formular zurücksetzen
@@ -539,7 +543,9 @@ function Dashboard() {
       alert('Police erfolgreich gespeichert!');
     } catch (error) {
       console.error('Fehler beim Speichern:', error);
-      alert('Fehler beim Speichern der Police');
+      // Wenn hier immer noch RLS kommt, obwohl du .id nutzt, 
+      // liegt es an der Datenbank-Policy (SQL Editor).
+      alert('Fehler beim Speichern der Police: ' + (error.message || 'RLS Fehler'));
     } finally {
       setLoading(false);
     }
@@ -601,13 +607,12 @@ function Dashboard() {
         purchaseDate: itemPurchaseDate || null
       };
 
-      await addValuableItem(currentUser.uid, itemData, itemImage);
+      // FIX: Auch hier currentUser.id nutzen
+      await addValuableItem(currentUser.id, itemData, itemImage);
       
-      // Items neu laden
-      const updatedItems = await getUserValuableItems(currentUser.uid);
+      const updatedItems = await getUserValuableItems(currentUser.id);
       setValuableItems(updatedItems);
       
-      // Formular zurücksetzen
       setItemName('');
       setItemValue('');
       setItemCategory('');

@@ -16,14 +16,23 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setCurrentUser(session?.user ?? null);
-      setLoading(false);
-    });
+    // 1. Initialer Check der Session beim Laden der Seite
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setCurrentUser(session?.user ?? null);
+      } catch (error) {
+        console.error("Auth Initialisierungsfehler:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // Listen for auth changes
+    initializeAuth();
+
+    // 2. Auf Auth-Änderungen reagieren (Login, Logout, Token-Refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("🔵 Auth Event:", _event);
       setCurrentUser(session?.user ?? null);
       setLoading(false);
     });
@@ -31,125 +40,83 @@ export const AuthProvider = ({ children }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Sign up with email/password (kompatibel mit altem "signup" Name)
+  // --- ACTIONS ---
+
   const signup = async (email, password) => {
-    console.log('🔵 SUPABASE SIGNUP GESTARTET FÜR:', email);
-
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: window.location.origin,
-        }
-      });
-
-      if (error) throw error;
-
-      console.log('✅ USER ERSTELLT:', data.user?.id);
-      console.log('📧 EMAIL VERIFICATION SENT!');
-
-      return data;
-    } catch (error) {
-      console.error('❌ FEHLER BEIM SIGNUP:', error.message);
-      throw error;
-    }
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: window.location.origin }
+    });
+    if (error) throw error;
+    return data;
   };
 
-  // Alias für Kompatibilität
-  const signUp = signup;
-
-  // Sign in with email/password (kompatibel mit altem "login" Name)
   const login = async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-
     if (error) throw error;
     return data;
   };
 
-  // Alias für Kompatibilität
-  const signIn = login;
-
-  // Sign in with Google OAuth
-  const loginWithGoogle = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin
-      }
-    });
-
-    if (error) throw error;
-    return data;
-  };
-
-  // Alias für Kompatibilität
-  const signInWithGoogle = loginWithGoogle;
-
-  // Sign out (kompatibel mit altem "logout" Name)
   const logout = async () => {
+    // WICHTIG: Erst lokalen State nullen, um "undefined" Requests beim Unmounten zu verhindern
+    setCurrentUser(null);
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };
 
-  // Alias für Kompatibilität
-  const signOut = logout;
-
-  // Reset password
-  const resetPassword = async (email) => {
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/reset-password',
+  const loginWithGoogle = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin }
     });
-
     if (error) throw error;
     return data;
   };
 
-  // Resend verification email
-  const resendVerificationEmail = async () => {
-    if (currentUser && !currentUser.email_confirmed_at) {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: currentUser.email
-      });
-      if (error) throw error;
-    }
-  };
-
-  // Update password
-  const updatePassword = async (newPassword) => {
-    const { data, error } = await supabase.auth.updateUser({
-      password: newPassword
+  const resetPassword = async (email) => {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/reset-password',
     });
-
     if (error) throw error;
     return data;
   };
 
   const value = {
     currentUser,
-    // Alte Firebase Namen (für Kompatibilität)
+    loading,
     signup,
+    signUp: signup,
     login,
-    loginWithGoogle,
+    signIn: login,
     logout,
-    resendVerificationEmail,
-    // Neue Supabase Namen
-    signUp,
-    signIn,
-    signInWithGoogle,
-    signOut,
+    signOut: logout,
+    loginWithGoogle,
+    signInWithGoogle: loginWithGoogle,
     resetPassword,
-    updatePassword,
-    loading
+    updatePassword: async (password) => {
+      const { data, error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      return data;
+    }
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {/* Das ist die wichtigste Zeile: Wir rendern die App erst, 
+          wenn loading false ist. Das verhindert "undefined" IDs in den Services.
+      */}
+      {!loading ? children : (
+        <div className="min-h-screen flex items-center justify-center bg-blue-50">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600 font-medium">InsuBuddy wird geladen...</p>
+          </div>
+        </div>
+      )}
     </AuthContext.Provider>
   );
 };

@@ -1,7 +1,6 @@
 import { supabase } from '../supabase';
 import { saveFinancialSnapshot } from './financialService';
 
-// Datei zu Base64 konvertieren
 const fileToBase64 = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -11,49 +10,44 @@ const fileToBase64 = (file) => {
   });
 };
 
-// Add a new policy
+// --- ADD POLICY ---
 export const addPolicy = async (userId, policyData, file = null) => {
   try {
-    // Handle file upload if present
-    let fileData = null;
+    // Grunddaten
+    const insertData = {
+      user_id: userId,
+      name: policyData.name,
+      company: policyData.company,
+      type: policyData.type,
+      premium: policyData.premium,
+      expiry_date: policyData.expiryDate || null,
+      coverage: policyData.coverage || [],
+      status: policyData.status || 'ok'
+    };
+
+    // Nur hinzufügen, wenn Datei vorhanden ist
     if (file) {
       const base64 = await fileToBase64(file);
-      fileData = {
-        file_name: file.name,
-        file_type: file.type,
-        file_size: file.size,
-        file_data: base64
-      };
+      insertData.file_name = file.name;
+      insertData.file_type = file.type;
+      insertData.file_size = parseInt(file.size); // Sicherstellen, dass es eine Zahl ist
+      insertData.file_data = base64;
     }
 
-    // Insert policy into Supabase
     const { data, error } = await supabase
       .from('policies')
-      .insert([
-        {
-          user_id: userId,
-          name: policyData.name,
-          company: policyData.company,
-          type: policyData.type,
-          premium: policyData.premium,
-          expiry_date: policyData.expiryDate || null,
-          coverage: policyData.coverage || [],
-          status: policyData.status || 'ok',
-          ...fileData
-        }
-      ])
+      .insert([insertData]) // Hier wird nur das saubere Objekt gesendet
       .select()
       .single();
 
     if (error) throw error;
+    // ... restlicher Code
 
-    // Trigger financial snapshot update
     try {
       const allPolicies = await getUserPolicies(userId);
       await saveFinancialSnapshot(userId, allPolicies);
     } catch (snapshotError) {
       console.error('Error saving financial snapshot:', snapshotError);
-      // Don't fail the whole operation if snapshot fails
     }
 
     return data;
@@ -63,7 +57,7 @@ export const addPolicy = async (userId, policyData, file = null) => {
   }
 };
 
-// Get all policies for current user
+// --- GET POLICIES ---
 export const getUserPolicies = async (userId) => {
   try {
     const { data, error } = await supabase
@@ -74,7 +68,6 @@ export const getUserPolicies = async (userId) => {
 
     if (error) throw error;
 
-    // Transform Supabase column names to match Firebase format (for compatibility)
     return (data || []).map(policy => ({
       id: policy.id,
       name: policy.name,
@@ -87,7 +80,6 @@ export const getUserPolicies = async (userId) => {
       userId: policy.user_id,
       createdAt: policy.created_at,
       updatedAt: policy.updated_at,
-      // File data
       file: policy.file_data ? {
         name: policy.file_name,
         type: policy.file_type,
@@ -101,10 +93,9 @@ export const getUserPolicies = async (userId) => {
   }
 };
 
-// Update a policy
+// --- UPDATE POLICY ---
 export const updatePolicy = async (policyId, updates, userId = null) => {
   try {
-    // Transform camelCase to snake_case for Supabase
     const supabaseUpdates = {
       name: updates.name,
       company: updates.company,
@@ -115,7 +106,6 @@ export const updatePolicy = async (policyId, updates, userId = null) => {
       status: updates.status
     };
 
-    // Remove undefined values
     Object.keys(supabaseUpdates).forEach(key =>
       supabaseUpdates[key] === undefined && delete supabaseUpdates[key]
     );
@@ -129,15 +119,9 @@ export const updatePolicy = async (policyId, updates, userId = null) => {
 
     if (error) throw error;
 
-    // Trigger financial snapshot update
     if (userId) {
-      try {
-        const allPolicies = await getUserPolicies(userId);
-        await saveFinancialSnapshot(userId, allPolicies);
-      } catch (snapshotError) {
-        console.error('Error saving financial snapshot:', snapshotError);
-        // Don't fail the whole operation if snapshot fails
-      }
+      const allPolicies = await getUserPolicies(userId);
+      await saveFinancialSnapshot(userId, allPolicies);
     }
 
     return data;
@@ -147,10 +131,9 @@ export const updatePolicy = async (policyId, updates, userId = null) => {
   }
 };
 
-// Delete a policy
+// --- DELETE POLICY (Hier hat die Funktion gefehlt!) ---
 export const deletePolicy = async (policyId) => {
   try {
-    // Get policy first to find userId for snapshot update
     const { data: policy } = await supabase
       .from('policies')
       .select('user_id')
@@ -159,7 +142,6 @@ export const deletePolicy = async (policyId) => {
 
     const userId = policy?.user_id;
 
-    // Delete the policy
     const { error } = await supabase
       .from('policies')
       .delete()
@@ -167,15 +149,9 @@ export const deletePolicy = async (policyId) => {
 
     if (error) throw error;
 
-    // Trigger financial snapshot update
     if (userId) {
-      try {
-        const allPolicies = await getUserPolicies(userId);
-        await saveFinancialSnapshot(userId, allPolicies);
-      } catch (snapshotError) {
-        console.error('Error saving financial snapshot:', snapshotError);
-        // Don't fail the whole operation if snapshot fails
-      }
+      const allPolicies = await getUserPolicies(userId);
+      await saveFinancialSnapshot(userId, allPolicies);
     }
   } catch (error) {
     console.error('Fehler beim Löschen der Police:', error);
@@ -183,7 +159,7 @@ export const deletePolicy = async (policyId) => {
   }
 };
 
-// Get expiring policies
+// --- EXPIRING POLICIES ---
 export const getExpiringPolicies = async (userId, daysThreshold = 30) => {
   try {
     const today = new Date();
@@ -200,7 +176,6 @@ export const getExpiringPolicies = async (userId, daysThreshold = 30) => {
 
     if (error) throw error;
 
-    // Transform to Firebase format for compatibility
     return (data || []).map(policy => ({
       id: policy.id,
       name: policy.name,
@@ -218,7 +193,7 @@ export const getExpiringPolicies = async (userId, daysThreshold = 30) => {
   }
 };
 
-// Calculate total premium
+// --- CALCULATE PREMIUM ---
 export const calculateTotalPremium = (policies) => {
   return policies.reduce((total, policy) => {
     if (policy.premium) {
