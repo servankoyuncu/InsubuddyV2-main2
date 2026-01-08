@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
 
 export function useAdmin() {
@@ -17,8 +16,18 @@ export function useAdmin() {
       }
 
       try {
-        const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
-        setIsAdmin(adminDoc.exists() && adminDoc.data().role === 'admin');
+        // Query admins table for current user
+        const { data, error } = await supabase
+          .from('admins')
+          .select('role')
+          .eq('id', currentUser.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        }
+
+        setIsAdmin(data && data.role === 'admin');
       } catch (error) {
         console.error('Fehler beim Prüfen der Admin-Rechte:', error);
         setIsAdmin(false);

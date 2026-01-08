@@ -1,13 +1,19 @@
-import { db } from '../firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { supabase } from '../supabase';
 
 // Benachrichtigungs-Einstellungen speichern
 export const saveNotificationSettings = async (userId, settings) => {
   try {
-    await setDoc(doc(db, 'userSettings', userId), {
-      notifications: settings,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
+    const { error } = await supabase
+      .from('user_settings')
+      .upsert({
+        user_id: userId,
+        notifications: settings,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id'
+      });
+
+    if (error) throw error;
   } catch (error) {
     console.error('Fehler beim Speichern der Einstellungen:', error);
     throw error;
@@ -17,16 +23,20 @@ export const saveNotificationSettings = async (userId, settings) => {
 // Benachrichtigungs-Einstellungen laden
 export const getNotificationSettings = async (userId) => {
   try {
-    const docRef = doc(db, 'userSettings', userId);
-    const docSnap = await getDoc(docRef);
-    
-    if (docSnap.exists()) {
-      return docSnap.data().notifications || {
-        enabled: true,
-        reminderDays: 30
-      };
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('notifications')
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      throw error;
     }
-    
+
+    if (data && data.notifications) {
+      return data.notifications;
+    }
+
     // Standard-Einstellungen
     return {
       enabled: true,
@@ -45,14 +55,14 @@ export const getNotificationSettings = async (userId) => {
 export const checkExpiringPolicies = (policies, reminderDays) => {
   const notifications = [];
   const today = new Date();
-  
+
   policies.forEach(policy => {
     if (!policy.expiryDate) return;
-    
+
     const expiryDate = new Date(policy.expiryDate);
     const diffTime = expiryDate - today;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     // Benachrichtigung erstellen wenn innerhalb des Erinnerungs-Zeitraums
     if (diffDays > 0 && diffDays <= reminderDays) {
       notifications.push({
@@ -66,7 +76,7 @@ export const checkExpiringPolicies = (policies, reminderDays) => {
         read: false
       });
     }
-    
+
     // Kritische Warnung wenn bereits abgelaufen
     if (diffDays < 0) {
       notifications.push({
@@ -81,6 +91,6 @@ export const checkExpiringPolicies = (policies, reminderDays) => {
       });
     }
   });
-  
+
   return notifications;
 };

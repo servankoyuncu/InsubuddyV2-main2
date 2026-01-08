@@ -1,18 +1,5 @@
-import { db } from '../firebase';
-import {
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  limit,
-  Timestamp,
-  updateDoc,
-  doc,
-  getDoc
-} from 'firebase/firestore';
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { supabase } from '../supabase';
+import { format } from 'date-fns';
 
 /**
  * Parse premium string (e.g., "CHF 450/Jahr", "CHF 45/Monat") to annual amount
@@ -89,47 +76,31 @@ export const calculateCurrentSnapshot = (policies) => {
 };
 
 /**
- * Save monthly financial snapshot to Firestore
+ * Save monthly financial snapshot to Supabase
  */
 export const saveFinancialSnapshot = async (userId, policies) => {
   try {
     const snapshot = calculateCurrentSnapshot(policies);
     const month = format(new Date(), 'yyyy-MM');
 
-    // Check if snapshot for this month already exists
-    const snapshotsRef = collection(db, 'financialSnapshots');
-    const q = query(
-      snapshotsRef,
-      where('userId', '==', userId),
-      where('month', '==', month)
-    );
+    // Upsert snapshot (insert or update)
+    const { data, error } = await supabase
+      .from('financial_snapshots')
+      .upsert({
+        user_id: userId,
+        month: month,
+        total_annual: snapshot.totalAnnual,
+        total_monthly: snapshot.totalMonthly,
+        by_category: snapshot.byCategory,
+        by_company: snapshot.byCompany,
+        policy_count: snapshot.policyCount
+      }, {
+        onConflict: 'user_id,month'
+      })
+      .select()
+      .single();
 
-    const existingSnapshots = await getDocs(q);
-
-    if (existingSnapshots.empty) {
-      // Create new snapshot
-      await addDoc(snapshotsRef, {
-        userId,
-        month,
-        totalAnnual: snapshot.totalAnnual,
-        totalMonthly: snapshot.totalMonthly,
-        byCategory: snapshot.byCategory,
-        byCompany: snapshot.byCompany,
-        policyCount: snapshot.policyCount,
-        createdAt: Timestamp.now(),
-      });
-    } else {
-      // Update existing snapshot
-      const docRef = existingSnapshots.docs[0].ref;
-      await updateDoc(docRef, {
-        totalAnnual: snapshot.totalAnnual,
-        totalMonthly: snapshot.totalMonthly,
-        byCategory: snapshot.byCategory,
-        byCompany: snapshot.byCompany,
-        policyCount: snapshot.policyCount,
-        updatedAt: Timestamp.now(),
-      });
-    }
+    if (error) throw error;
 
     return snapshot;
   } catch (error) {
@@ -143,26 +114,26 @@ export const saveFinancialSnapshot = async (userId, policies) => {
  */
 export const getFinancialHistory = async (userId, months = 6) => {
   try {
-    const snapshotsRef = collection(db, 'financialSnapshots');
-    const q = query(
-      snapshotsRef,
-      where('userId', '==', userId),
-      orderBy('month', 'desc'),
-      limit(months)
-    );
+    const { data, error} = await supabase
+      .from('financial_snapshots')
+      .select('*')
+      .eq('user_id', userId)
+      .order('month', { ascending: false })
+      .limit(months);
 
-    const querySnapshot = await getDocs(q);
-    const history = [];
+    if (error) throw error;
 
-    querySnapshot.forEach(doc => {
-      history.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-
-    // Reverse to get chronological order
-    return history.reverse();
+    // Transform to camelCase for compatibility and reverse for chronological order
+    return (data || []).reverse().map(snapshot => ({
+      id: snapshot.id,
+      userId: snapshot.user_id,
+      month: snapshot.month,
+      totalAnnual: snapshot.total_annual,
+      totalMonthly: snapshot.total_monthly,
+      byCategory: snapshot.by_category,
+      byCompany: snapshot.by_company,
+      policyCount: snapshot.policy_count
+    }));
   } catch (error) {
     console.error('Error getting financial history:', error);
     return [];

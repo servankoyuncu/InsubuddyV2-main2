@@ -1,14 +1,4 @@
-import { db } from '../firebase';
-import {
-  collection,
-  addDoc,
-  getDocs,
-  deleteDoc,
-  doc,
-  query,
-  where,
-  updateDoc
-} from 'firebase/firestore';
+import { supabase } from '../supabase';
 import { saveFinancialSnapshot } from './financialService';
 
 // Datei zu Base64 konvertieren
@@ -21,30 +11,41 @@ const fileToBase64 = (file) => {
   });
 };
 
-// Police hinzufügen
+// Add a new policy
 export const addPolicy = async (userId, policyData, file = null) => {
   try {
+    // Handle file upload if present
     let fileData = null;
-
     if (file) {
       const base64 = await fileToBase64(file);
       fileData = {
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        data: base64
+        file_name: file.name,
+        file_type: file.type,
+        file_size: file.size,
+        file_data: base64
       };
     }
 
-    const policy = {
-      ...policyData,
-      userId,
-      file: fileData,
-      createdAt: new Date().toISOString()
-    };
+    // Insert policy into Supabase
+    const { data, error } = await supabase
+      .from('policies')
+      .insert([
+        {
+          user_id: userId,
+          name: policyData.name,
+          company: policyData.company,
+          type: policyData.type,
+          premium: policyData.premium,
+          expiry_date: policyData.expiryDate || null,
+          coverage: policyData.coverage || [],
+          status: policyData.status || 'ok',
+          ...fileData
+        }
+      ])
+      .select()
+      .single();
 
-    const docRef = await addDoc(collection(db, 'policies'), policy);
-    const newPolicy = { id: docRef.id, ...policy };
+    if (error) throw error;
 
     // Trigger financial snapshot update
     try {
@@ -55,44 +56,116 @@ export const addPolicy = async (userId, policyData, file = null) => {
       // Don't fail the whole operation if snapshot fails
     }
 
-    return newPolicy;
+    return data;
   } catch (error) {
     console.error('Fehler beim Hinzufügen der Police:', error);
     throw error;
   }
 };
 
-// Alle Policen eines Users abrufen
+// Get all policies for current user
 export const getUserPolicies = async (userId) => {
   try {
-    const q = query(collection(db, 'policies'), where('userId', '==', userId));
-    const querySnapshot = await getDocs(q);
-    
-    const policies = [];
-    querySnapshot.forEach((doc) => {
-      policies.push({ id: doc.id, ...doc.data() });
-    });
-    
-    return policies;
+    const { data, error } = await supabase
+      .from('policies')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Transform Supabase column names to match Firebase format (for compatibility)
+    return (data || []).map(policy => ({
+      id: policy.id,
+      name: policy.name,
+      company: policy.company,
+      type: policy.type,
+      premium: policy.premium,
+      expiryDate: policy.expiry_date,
+      coverage: policy.coverage || [],
+      status: policy.status,
+      userId: policy.user_id,
+      createdAt: policy.created_at,
+      updatedAt: policy.updated_at,
+      // File data
+      file: policy.file_data ? {
+        name: policy.file_name,
+        type: policy.file_type,
+        size: policy.file_size,
+        data: policy.file_data
+      } : null
+    }));
   } catch (error) {
     console.error('Fehler beim Abrufen der Policen:', error);
+    return [];
+  }
+};
+
+// Update a policy
+export const updatePolicy = async (policyId, updates, userId = null) => {
+  try {
+    // Transform camelCase to snake_case for Supabase
+    const supabaseUpdates = {
+      name: updates.name,
+      company: updates.company,
+      type: updates.type,
+      premium: updates.premium,
+      expiry_date: updates.expiryDate,
+      coverage: updates.coverage,
+      status: updates.status
+    };
+
+    // Remove undefined values
+    Object.keys(supabaseUpdates).forEach(key =>
+      supabaseUpdates[key] === undefined && delete supabaseUpdates[key]
+    );
+
+    const { data, error } = await supabase
+      .from('policies')
+      .update(supabaseUpdates)
+      .eq('id', policyId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Trigger financial snapshot update
+    if (userId) {
+      try {
+        const allPolicies = await getUserPolicies(userId);
+        await saveFinancialSnapshot(userId, allPolicies);
+      } catch (snapshotError) {
+        console.error('Error saving financial snapshot:', snapshotError);
+        // Don't fail the whole operation if snapshot fails
+      }
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Fehler beim Aktualisieren der Police:', error);
     throw error;
   }
 };
 
-// Police löschen
+// Delete a policy
 export const deletePolicy = async (policyId) => {
   try {
-    // Get policy to find userId before deleting
-    const policyRef = doc(db, 'policies', policyId);
-    const policyDoc = await getDocs(query(collection(db, 'policies'), where('__name__', '==', policyId)));
-    let userId = null;
+    // Get policy first to find userId for snapshot update
+    const { data: policy } = await supabase
+      .from('policies')
+      .select('user_id')
+      .eq('id', policyId)
+      .single();
 
-    if (!policyDoc.empty) {
-      userId = policyDoc.docs[0].data().userId;
-    }
+    const userId = policy?.user_id;
 
-    await deleteDoc(policyRef);
+    // Delete the policy
+    const { error } = await supabase
+      .from('policies')
+      .delete()
+      .eq('id', policyId);
+
+    if (error) throw error;
 
     // Trigger financial snapshot update
     if (userId) {
@@ -110,27 +183,50 @@ export const deletePolicy = async (policyId) => {
   }
 };
 
-// Police aktualisieren
-export const updatePolicy = async (policyId, updates, userId = null) => {
+// Get expiring policies
+export const getExpiringPolicies = async (userId, daysThreshold = 30) => {
   try {
-    const policyRef = doc(db, 'policies', policyId);
-    await updateDoc(policyRef, {
-      ...updates,
-      updatedAt: new Date().toISOString()
-    });
+    const today = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(today.getDate() + daysThreshold);
 
-    // Trigger financial snapshot update
-    if (userId) {
-      try {
-        const allPolicies = await getUserPolicies(userId);
-        await saveFinancialSnapshot(userId, allPolicies);
-      } catch (snapshotError) {
-        console.error('Error saving financial snapshot:', snapshotError);
-        // Don't fail the whole operation if snapshot fails
+    const { data, error } = await supabase
+      .from('policies')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('expiry_date', today.toISOString().split('T')[0])
+      .lte('expiry_date', futureDate.toISOString().split('T')[0])
+      .order('expiry_date', { ascending: true });
+
+    if (error) throw error;
+
+    // Transform to Firebase format for compatibility
+    return (data || []).map(policy => ({
+      id: policy.id,
+      name: policy.name,
+      company: policy.company,
+      type: policy.type,
+      premium: policy.premium,
+      expiryDate: policy.expiry_date,
+      coverage: policy.coverage || [],
+      status: policy.status,
+      userId: policy.user_id
+    }));
+  } catch (error) {
+    console.error('Error getting expiring policies:', error);
+    return [];
+  }
+};
+
+// Calculate total premium
+export const calculateTotalPremium = (policies) => {
+  return policies.reduce((total, policy) => {
+    if (policy.premium) {
+      const premiumValue = parseFloat(policy.premium.replace(/[^0-9.-]+/g, ''));
+      if (!isNaN(premiumValue)) {
+        return total + premiumValue;
       }
     }
-  } catch (error) {
-    console.error('Fehler beim Aktualisieren der Police:', error);
-    throw error;
-  }
+    return total;
+  }, 0);
 };

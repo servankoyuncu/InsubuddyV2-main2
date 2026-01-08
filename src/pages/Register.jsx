@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import { handleSupabaseError } from '../supabase';
 
 export default function Register() {
   const [email, setEmail] = useState('');
@@ -31,9 +32,11 @@ export default function Register() {
       await signup(email, password);
       navigate('/');
     } catch (error) {
-      setError('Registrierung fehlgeschlagen. E-Mail könnte bereits verwendet werden.');
+      console.error('Registration error:', error);
+      setError(handleSupabaseError(error));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (

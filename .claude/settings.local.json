@@ -3,7 +3,10 @@
     "allow": [
       "Bash(npm install:*)",
       "Bash(npm run dev:*)",
-      "Bash(timeout /t 10)"
+      "Bash(timeout /t 10)",
+      "Bash(npx cap sync:*)",
+      "Bash(npx cap open android)",
+      "Bash(timeout 5 tail:*)"
     ]
   }
 }

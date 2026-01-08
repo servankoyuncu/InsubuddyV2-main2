@@ -1,32 +1,32 @@
-import { db } from '../firebase';
-import {
-  collection,
-  doc,
-  getDoc,
-  setDoc,
-  Timestamp
-} from 'firebase/firestore';
+import { supabase } from '../supabase';
 
 /**
  * Get user's budget settings
  */
 export const getBudget = async (userId) => {
   try {
-    const budgetRef = doc(db, 'budgets', userId);
-    const budgetDoc = await getDoc(budgetRef);
+    const { data, error } = await supabase
+      .from('budgets')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
 
-    if (budgetDoc.exists()) {
-      return {
-        id: budgetDoc.id,
-        ...budgetDoc.data()
-      };
+    if (error && error.code !== 'PGRST116') {
+      throw error;
     }
 
-    // Return default budget if none exists
-    return null;
+    if (!data) return null;
+
+    // Transform to camelCase for compatibility
+    return {
+      userId: data.user_id,
+      monthlyLimit: data.monthly_limit,
+      annualLimit: data.annual_limit,
+      alerts: data.alerts
+    };
   } catch (error) {
     console.error('Error getting budget:', error);
-    throw error;
+    return null;
   }
 };
 
@@ -35,27 +35,28 @@ export const getBudget = async (userId) => {
  */
 export const saveBudget = async (userId, budgetData) => {
   try {
-    const budgetRef = doc(db, 'budgets', userId);
-    const existingBudget = await getDoc(budgetRef);
+    const { data, error } = await supabase
+      .from('budgets')
+      .upsert({
+        user_id: userId,
+        monthly_limit: budgetData.monthlyLimit || 0,
+        annual_limit: budgetData.annualLimit || 0,
+        alerts: budgetData.alerts !== undefined ? budgetData.alerts : true
+      }, {
+        onConflict: 'user_id'
+      })
+      .select()
+      .single();
 
-    const budget = {
-      userId,
-      monthlyLimit: budgetData.monthlyLimit || 0,
-      annualLimit: budgetData.annualLimit || 0,
-      alerts: budgetData.alerts !== undefined ? budgetData.alerts : true,
-      updatedAt: Timestamp.now()
+    if (error) throw error;
+
+    // Return in camelCase format
+    return {
+      userId: data.user_id,
+      monthlyLimit: data.monthly_limit,
+      annualLimit: data.annual_limit,
+      alerts: data.alerts
     };
-
-    if (existingBudget.exists()) {
-      // Update existing budget
-      await setDoc(budgetRef, budget, { merge: true });
-    } else {
-      // Create new budget
-      budget.createdAt = Timestamp.now();
-      await setDoc(budgetRef, budget);
-    }
-
-    return budget;
   } catch (error) {
     console.error('Error saving budget:', error);
     throw error;
