@@ -6,7 +6,11 @@
       "Bash(timeout /t 10)",
       "Bash(npx cap sync:*)",
       "Bash(npx cap open android)",
-      "Bash(timeout 5 tail:*)"
+      "Bash(timeout 5 tail:*)",
+      "Bash(if [ -f .env ])",
+      "Bash(then grep -E \"SUPABASE|FIREBASE\" .env)",
+      "Bash(else echo \".env not found\")",
+      "Bash(fi)"
     ]
   }
 }

@@ -13,7 +13,30 @@ const fileToBase64 = (file) => {
 // --- ADD POLICY ---
 export const addPolicy = async (userId, policyData, file = null) => {
   try {
-    // Grunddaten
+    let filePath = null;
+    let fileUrl = null;
+
+    // 1. Datei in Storage hochladen (statt Base64)
+    if (file) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}/${Math.random()}.${fileExt}`;
+      filePath = fileName;
+
+      const { error: uploadError } = await supabase.storage
+        .from('policy-documents')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // URL der Datei abrufen
+      const { data: urlData } = supabase.storage
+        .from('policy-documents')
+        .getPublicUrl(fileName);
+      
+      fileUrl = urlData.publicUrl;
+    }
+
+    // 2. Police in Datenbank speichern (mit Link statt Daten)
     const insertData = {
       user_id: userId,
       name: policyData.name,
@@ -22,34 +45,18 @@ export const addPolicy = async (userId, policyData, file = null) => {
       premium: policyData.premium,
       expiry_date: policyData.expiryDate || null,
       coverage: policyData.coverage || [],
-      status: policyData.status || 'ok'
+      status: 'ok',
+      file_name: file ? file.name : null,
+      file_data: fileUrl // Hier speichern wir jetzt die URL!
     };
-
-    // Nur hinzufügen, wenn Datei vorhanden ist
-    if (file) {
-      const base64 = await fileToBase64(file);
-      insertData.file_name = file.name;
-      insertData.file_type = file.type;
-      insertData.file_size = parseInt(file.size); // Sicherstellen, dass es eine Zahl ist
-      insertData.file_data = base64;
-    }
 
     const { data, error } = await supabase
       .from('policies')
-      .insert([insertData]) // Hier wird nur das saubere Objekt gesendet
+      .insert([insertData])
       .select()
       .single();
 
     if (error) throw error;
-    // ... restlicher Code
-
-    try {
-      const allPolicies = await getUserPolicies(userId);
-      await saveFinancialSnapshot(userId, allPolicies);
-    } catch (snapshotError) {
-      console.error('Error saving financial snapshot:', snapshotError);
-    }
-
     return data;
   } catch (error) {
     console.error('Fehler beim Hinzufügen der Police:', error);
