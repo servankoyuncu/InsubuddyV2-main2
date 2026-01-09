@@ -7,8 +7,7 @@ import { getNotificationSettings, checkExpiringPolicies } from '../services/noti
 import { addValuableItem, getUserValuableItems, deleteValuableItem, calculateTotalValue } from '../services/valuableItemsService';
 import { getActiveAdminNotifications } from '../services/adminNotificationService';
 import { useAdmin } from '../hooks/useAdmin';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../supabase';
 import FinancialDashboard from '../components/FinancialDashboard';
 
 // Deckungen-Templates mit detaillierten Beschreibungen
@@ -220,7 +219,7 @@ function Dashboard() {
   // 1. Policen laden beim Start
   useEffect(() => {
     const loadPolicies = async () => {
-      if (currentUser?.id) { // Fix: .id statt .uid
+      if (currentUser?.id) {
         try {
           const userPolicies = await getUserPolicies(currentUser.id);
           setPolicies(userPolicies);
@@ -230,7 +229,7 @@ function Dashboard() {
       }
     };
     loadPolicies();
-  }, [currentUser]);
+  }, [currentUser?.id]); // Fix: Nur auf ID-Änderung reagieren
 
   // 2. Partner-Versicherungen laden (UMGESTELLT AUF SUPABASE)
   useEffect(() => {
@@ -255,7 +254,7 @@ function Dashboard() {
   // 3. Wertgegenstände laden beim Start
   useEffect(() => {
     const loadItems = async () => {
-      if (currentUser?.id) { // Fix: .id statt .uid
+      if (currentUser?.id) {
         try {
           const items = await getUserValuableItems(currentUser.id);
           setValuableItems(items);
@@ -265,12 +264,12 @@ function Dashboard() {
       }
     };
     loadItems();
-  }, [currentUser]);
+  }, [currentUser?.id]); // Fix: Nur auf ID-Änderung reagieren
 
   // 4. Benachrichtigungs-Einstellungen laden
   useEffect(() => {
     const loadSettings = async () => {
-      if (currentUser?.id) { // Fix: .id statt .uid
+      if (currentUser?.id) {
         try {
           const settings = await getNotificationSettings(currentUser.id);
           if (settings) setNotificationSettings(settings);
@@ -280,7 +279,7 @@ function Dashboard() {
       }
     };
     loadSettings();
-  }, [currentUser]);
+  }, [currentUser?.id]); // Fix: Nur auf ID-Änderung reagieren
 
   // 5. Admin Notifications laden
   useEffect(() => {
