@@ -1285,7 +1285,7 @@ function Dashboard() {
             )}
             
             <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
-              <button 
+              <button
                 onClick={() => setShowBiometricSetup(true)}
                 className="w-full text-left flex items-center justify-between mb-4"
               >
@@ -1294,6 +1294,13 @@ function Dashboard() {
                   <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('biometric_desc')}</div>
                 </div>
                 {biometricEnabled && <Check className="w-5 h-5 text-green-500" />}
+              </button>
+              <button
+                onClick={() => navigate('/account-settings')}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 mb-3 flex items-center justify-center gap-2"
+              >
+                <User className="w-5 h-5" />
+                Konto-Einstellungen
               </button>
               <button
                 onClick={logout}

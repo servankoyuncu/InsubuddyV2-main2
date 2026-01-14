@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Shield, Mail, Lock, Eye, EyeOff, Loader } from 'lucide-react';
-import { handleSupabaseError } from '../supabase';
 
 function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
-
+  const { signIn } = useAuth();
+  
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -22,11 +21,17 @@ function Login() {
     setLoading(true);
 
     try {
-      await login(formData.email, formData.password);
-      navigate('/');
+      await signIn(formData.email, formData.password);
+      navigate('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
-      setError(handleSupabaseError(error));
+      if (error.message.includes('Invalid login credentials')) {
+        setError('Ungültige E-Mail oder Passwort. Bitte versuchen Sie es erneut.');
+      } else if (error.message.includes('Email not confirmed')) {
+        setError('Bitte bestätigen Sie Ihre E-Mail-Adresse bevor Sie sich anmelden.');
+      } else {
+        setError('Login fehlgeschlagen. Bitte überprüfen Sie Ihre Anmeldedaten.');
+      }
     } finally {
       setLoading(false);
     }
@@ -68,6 +73,7 @@ function Login() {
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="ihre@email.com"
                   required
+                  autoComplete="email"
                 />
               </div>
             </div>
@@ -86,6 +92,7 @@ function Login() {
                   className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="••••••••"
                   required
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
@@ -128,6 +135,19 @@ function Login() {
               Jetzt registrieren
             </Link>
           </div>
+        </div>
+
+        {/* Privacy & Terms */}
+        <div className="mt-6 text-center text-xs text-gray-500">
+          Mit der Nutzung von InsuBuddy stimmen Sie unseren{' '}
+          <a href="https://insubuddy.com/terms" className="text-blue-600 hover:text-blue-700" target="_blank" rel="noopener noreferrer">
+            Nutzungsbedingungen
+          </a>{' '}
+          und{' '}
+          <a href="https://insubuddy.com/privacy" className="text-blue-600 hover:text-blue-700" target="_blank" rel="noopener noreferrer">
+            Datenschutzrichtlinien
+          </a>{' '}
+          zu.
         </div>
       </div>
     </div>
