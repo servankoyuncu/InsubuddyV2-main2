@@ -10,7 +10,8 @@
       "Bash(if [ -f .env ])",
       "Bash(then grep -E \"SUPABASE|FIREBASE\" .env)",
       "Bash(else echo \".env not found\")",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(npm run build:*)"
     ]
   }
 }
