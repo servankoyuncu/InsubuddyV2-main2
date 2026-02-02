@@ -9,6 +9,7 @@ import { getActiveAdminNotifications } from '../services/adminNotificationServic
 import { useAdmin } from '../hooks/useAdmin';
 import { supabase } from '../supabase';
 import FinancialDashboard from '../components/FinancialDashboard';
+import Onboarding from '../components/Onboarding';
 
 // Deckungen-Templates mit detaillierten Beschreibungen
 const coverageTemplates = {
@@ -201,8 +202,21 @@ function Dashboard() {
   
   // Partner-Versicherungen State
   const [partnerInsurances, setPartnerInsurances] = useState([]);
-  
+
   const [notifications, setNotifications] = useState([]);
+
+  // Onboarding State
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    // Zeige Onboarding nur wenn es noch nicht abgeschlossen wurde
+    const hasCompletedOnboarding = localStorage.getItem('insubuddy_onboarding_completed');
+    return !hasCompletedOnboarding;
+  });
+
+  // Onboarding abschliessen
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('insubuddy_onboarding_completed', 'true');
+    setShowOnboarding(false);
+  };
 
   // Kategorien
   const categories = [
@@ -714,6 +728,11 @@ function Dashboard() {
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      {/* Onboarding für neue Benutzer */}
+      {showOnboarding && (
+        <Onboarding onComplete={handleOnboardingComplete} darkMode={darkMode} />
+      )}
+
       <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b px-4 pt-12 pb-4`}>
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
