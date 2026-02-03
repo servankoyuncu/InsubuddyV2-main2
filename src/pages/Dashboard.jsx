@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check, Shield, ExternalLink, Star, Info } from 'lucide-react';
+import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check, Shield, ExternalLink, Star, Info, Sparkles, Crown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { addPolicy, getUserPolicies, deletePolicy } from '../services/policyservice';
 import { getNotificationSettings, checkExpiringPolicies } from '../services/notificationService';
@@ -10,6 +10,9 @@ import { useAdmin } from '../hooks/useAdmin';
 import { supabase } from '../supabase';
 import FinancialDashboard from '../components/FinancialDashboard';
 import Onboarding from '../components/Onboarding';
+import PolicyUploader from '../components/PolicyUploader';
+import PremiumModal from '../components/PremiumModal';
+import { checkPremiumStatus, PREMIUM_FEATURES } from '../services/premiumService';
 
 // Deckungen-Templates mit detaillierten Beschreibungen
 const coverageTemplates = {
@@ -218,6 +221,28 @@ function Dashboard() {
     setShowOnboarding(false);
   };
 
+  // PDF Upload State
+  const [showPolicyUploader, setShowPolicyUploader] = useState(false);
+
+  // Premium State
+  const [isPremium, setIsPremium] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+
+  // Handler für extrahierte Policy aus PDF
+  const handlePolicyExtracted = async (policyData, file) => {
+    try {
+      setLoading(true);
+      const newPolicy = await addPolicy(currentUser.id, policyData, file);
+      setPolicies([newPolicy, ...policies]);
+      setShowPolicyUploader(false);
+    } catch (error) {
+      console.error('Fehler beim Speichern der Police:', error);
+      alert('Fehler beim Speichern der Police');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Kategorien
   const categories = [
     { value: 'auto', label: 'Kfz-Versicherung' },
@@ -244,6 +269,17 @@ function Dashboard() {
     };
     loadPolicies();
   }, [currentUser?.id]); // Fix: Nur auf ID-Änderung reagieren
+
+  // Premium Status prüfen
+  useEffect(() => {
+    const checkPremium = async () => {
+      if (currentUser?.id) {
+        const { isPremium: premiumStatus } = await checkPremiumStatus(currentUser.id);
+        setIsPremium(premiumStatus);
+      }
+    };
+    checkPremium();
+  }, [currentUser?.id]);
 
   // 2. Partner-Versicherungen laden (UMGESTELLT AUF SUPABASE)
   useEffect(() => {
@@ -733,6 +769,32 @@ function Dashboard() {
         <Onboarding onComplete={handleOnboardingComplete} darkMode={darkMode} />
       )}
 
+      {/* Smart Import - PDF Uploader */}
+      {showPolicyUploader && (
+        <PolicyUploader
+          onPolicyExtracted={handlePolicyExtracted}
+          onClose={() => setShowPolicyUploader(false)}
+          darkMode={darkMode}
+          coverageTemplates={coverageTemplates}
+        />
+      )}
+
+      {/* Premium Modal */}
+      {showPremiumModal && (
+        <PremiumModal
+          onClose={() => setShowPremiumModal(false)}
+          darkMode={darkMode}
+          userId={currentUser?.id}
+          featureRequested={PREMIUM_FEATURES.SMART_IMPORT}
+          onPremiumActivated={() => {
+            setIsPremium(true);
+            setShowPremiumModal(false);
+            // Optional: Direkt Smart Import öffnen nach Upgrade
+            setShowPolicyUploader(true);
+          }}
+        />
+      )}
+
       <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b px-4 pt-12 pb-4`}>
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
@@ -971,9 +1033,38 @@ function Dashboard() {
               <div className="text-sm opacity-90">{t('annual_premium')}</div>
             </div>
 
-            <button 
+            {/* Smart Import Button - Premium Feature */}
+            <button
+              onClick={() => {
+                if (isPremium) {
+                  setShowPolicyUploader(true);
+                } else {
+                  setShowPremiumModal(true);
+                }
+              }}
+              className={`w-full py-3 rounded-lg font-medium flex items-center justify-center gap-2 mb-3 relative ${
+                darkMode
+                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700'
+                  : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600'
+              } text-white`}
+            >
+              <Sparkles className="w-5 h-5" />
+              Smart Import (PDF)
+              {!isPremium && (
+                <span className="absolute -top-2 -right-2 bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <Crown className="w-3 h-3" />
+                  PRO
+                </span>
+              )}
+            </button>
+
+            <button
               onClick={() => setShowAddPolicy(true)}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-blue-700"
+              className={`w-full py-3 rounded-lg font-medium flex items-center justify-center gap-2 ${
+                darkMode
+                  ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+              }`}
             >
               <Plus className="w-5 h-5" />
               {t('add_policy')}
