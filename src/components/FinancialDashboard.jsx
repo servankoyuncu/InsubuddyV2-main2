@@ -252,7 +252,7 @@ const FinancialDashboard = ({ policies, darkMode, language, currentUser }) => {
         />
         <BudgetPlanner
           currentSpending={snapshot?.totalMonthly || 0}
-          userId={currentUser?.uid}
+          userId={currentUser?.id}
           darkMode={darkMode}
           translations={t}
         />

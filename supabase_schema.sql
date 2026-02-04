@@ -301,3 +301,191 @@ CREATE TRIGGER update_budgets_updated_at
   BEFORE UPDATE ON budgets
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
+-- ADVISORS TABLE - Versicherungsberater
+-- =====================================================
+
+-- Advisors Table
+CREATE TABLE IF NOT EXISTS advisors (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  title TEXT, -- z.B. "Versicherungsberater", "Senior Consultant"
+  company TEXT, -- z.B. "InsuBuddy", "Freiberuflich"
+  photo TEXT, -- URL zum Profilbild
+  bio TEXT, -- Kurze Beschreibung
+  -- Fachgebiete
+  topics TEXT[] DEFAULT '{}', -- Hauptthemen: Sachversicherung, Auto, KMU, Leben, Krankenkasse
+  specializations TEXT[] DEFAULT '{}', -- Detaillierte Spezialisierungen
+  -- Standort
+  city TEXT, -- z.B. "Zürich", "Bern"
+  canton TEXT, -- z.B. "ZH", "BE"
+  radius_km INTEGER DEFAULT 50, -- Einzugsgebiet in km
+  -- Kontakt
+  email TEXT,
+  phone TEXT, -- Format: +41 79 123 45 67
+  whatsapp TEXT, -- WhatsApp Nummer (kann gleich wie phone sein)
+  languages TEXT[] DEFAULT '{"Deutsch"}', -- Sprachen
+  -- Bewertungen
+  rating NUMERIC DEFAULT 0, -- Durchschnitt aus Reviews (0 = noch keine)
+  reviews_count INTEGER DEFAULT 0,
+  -- Status
+  active BOOLEAN DEFAULT true,
+  featured BOOLEAN DEFAULT false, -- Hervorgehobener Berater
+  verified BOOLEAN DEFAULT false, -- Verifizierter Berater
+  display_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- =====================================================
+-- ADVISOR REVIEWS TABLE - Bewertungen
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS advisor_reviews (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  advisor_id UUID REFERENCES advisors(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  title TEXT,
+  comment TEXT,
+  -- Was wurde bewertet
+  topics_consulted TEXT[] DEFAULT '{}', -- Welche Themen wurden beraten
+  would_recommend BOOLEAN DEFAULT true,
+  -- Moderation
+  is_approved BOOLEAN DEFAULT true, -- Admin kann Reviews moderieren
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  -- Ein User kann einen Berater nur einmal bewerten
+  UNIQUE(advisor_id, user_id)
+);
+
+-- Index für Reviews
+CREATE INDEX IF NOT EXISTS idx_advisor_reviews_advisor ON advisor_reviews(advisor_id, is_approved);
+CREATE INDEX IF NOT EXISTS idx_advisor_reviews_user ON advisor_reviews(user_id);
+
+-- Reviews RLS
+ALTER TABLE advisor_reviews ENABLE ROW LEVEL SECURITY;
+
+-- Jeder kann genehmigte Reviews lesen
+DROP POLICY IF EXISTS "Anyone can view approved reviews" ON advisor_reviews;
+CREATE POLICY "Anyone can view approved reviews"
+  ON advisor_reviews FOR SELECT
+  USING (is_approved = true);
+
+-- User können eigene Reviews erstellen
+DROP POLICY IF EXISTS "Users can create reviews" ON advisor_reviews;
+CREATE POLICY "Users can create reviews"
+  ON advisor_reviews FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- User können eigene Reviews bearbeiten
+DROP POLICY IF EXISTS "Users can update own reviews" ON advisor_reviews;
+CREATE POLICY "Users can update own reviews"
+  ON advisor_reviews FOR UPDATE
+  USING (auth.uid() = user_id);
+
+-- User können eigene Reviews löschen
+DROP POLICY IF EXISTS "Users can delete own reviews" ON advisor_reviews;
+CREATE POLICY "Users can delete own reviews"
+  ON advisor_reviews FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- Admins können alle Reviews verwalten
+DROP POLICY IF EXISTS "Admins can manage all reviews" ON advisor_reviews;
+CREATE POLICY "Admins can manage all reviews"
+  ON advisor_reviews FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM admins WHERE admins.id = auth.uid()
+    )
+  );
+
+-- Trigger für updated_at
+DROP TRIGGER IF EXISTS update_advisor_reviews_updated_at ON advisor_reviews;
+CREATE TRIGGER update_advisor_reviews_updated_at
+  BEFORE UPDATE ON advisor_reviews
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Function zum Aktualisieren der Advisor-Bewertung
+CREATE OR REPLACE FUNCTION update_advisor_rating()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE advisors
+  SET
+    rating = COALESCE((
+      SELECT AVG(rating)::NUMERIC(3,2)
+      FROM advisor_reviews
+      WHERE advisor_id = COALESCE(NEW.advisor_id, OLD.advisor_id)
+      AND is_approved = true
+    ), 0),
+    reviews_count = (
+      SELECT COUNT(*)
+      FROM advisor_reviews
+      WHERE advisor_id = COALESCE(NEW.advisor_id, OLD.advisor_id)
+      AND is_approved = true
+    )
+  WHERE id = COALESCE(NEW.advisor_id, OLD.advisor_id);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger für automatische Rating-Updates
+DROP TRIGGER IF EXISTS trigger_update_advisor_rating ON advisor_reviews;
+CREATE TRIGGER trigger_update_advisor_rating
+  AFTER INSERT OR UPDATE OR DELETE ON advisor_reviews
+  FOR EACH ROW
+  EXECUTE FUNCTION update_advisor_rating();
+
+-- Index für Advisors
+CREATE INDEX IF NOT EXISTS idx_advisors_active ON advisors(active, featured, display_order);
+
+-- Advisors Table RLS
+ALTER TABLE advisors ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can view active advisors" ON advisors;
+CREATE POLICY "Anyone can view active advisors"
+  ON advisors FOR SELECT
+  USING (active = true);
+
+DROP POLICY IF EXISTS "Admins can manage advisors" ON advisors;
+CREATE POLICY "Admins can manage advisors"
+  ON advisors FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM admins WHERE admins.id = auth.uid()
+    )
+  );
+
+-- Trigger für updated_at
+DROP TRIGGER IF EXISTS update_advisors_updated_at ON advisors;
+CREATE TRIGGER update_advisors_updated_at
+  BEFORE UPDATE ON advisors
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
+-- ADMIN STATS FUNCTION
+-- =====================================================
+
+CREATE OR REPLACE FUNCTION get_admin_stats()
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  result JSON;
+BEGIN
+  SELECT json_build_object(
+    'total_users', (SELECT COUNT(*) FROM auth.users),
+    'total_policies', (SELECT COUNT(*) FROM policies),
+    'total_partners', (SELECT COUNT(*) FROM partner_insurances WHERE status = 'published'),
+    'active_notifications', (SELECT COUNT(*) FROM admin_notifications WHERE active = true),
+    'total_advisors', (SELECT COUNT(*) FROM advisors WHERE active = true),
+    'total_reviews', (SELECT COUNT(*) FROM advisor_reviews WHERE is_approved = true)
+  ) INTO result;
+
+  RETURN result;
+END;
+$$;

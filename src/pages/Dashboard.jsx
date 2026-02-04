@@ -12,7 +12,9 @@ import FinancialDashboard from '../components/FinancialDashboard';
 import Onboarding from '../components/Onboarding';
 import PolicyUploader from '../components/PolicyUploader';
 import PremiumModal from '../components/PremiumModal';
+import AdvisorCard from '../components/AdvisorCard';
 import { checkPremiumStatus, PREMIUM_FEATURES } from '../services/premiumService';
+import { getFeaturedAdvisor } from '../services/advisorService';
 
 // Deckungen-Templates mit detaillierten Beschreibungen
 const coverageTemplates = {
@@ -228,6 +230,9 @@ function Dashboard() {
   const [isPremium, setIsPremium] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
 
+  // Advisor State
+  const [featuredAdvisor, setFeaturedAdvisor] = useState(null);
+
   // Handler für extrahierte Policy aus PDF
   const handlePolicyExtracted = async (policyData, file) => {
     try {
@@ -280,6 +285,19 @@ function Dashboard() {
     };
     checkPremium();
   }, [currentUser?.id]);
+
+  // Featured Advisor laden
+  useEffect(() => {
+    const loadAdvisor = async () => {
+      try {
+        const advisor = await getFeaturedAdvisor();
+        setFeaturedAdvisor(advisor);
+      } catch (error) {
+        console.error('Fehler beim Laden des Beraters:', error);
+      }
+    };
+    loadAdvisor();
+  }, []);
 
   // 2. Partner-Versicherungen laden (UMGESTELLT AUF SUPABASE)
   useEffect(() => {
@@ -864,6 +882,23 @@ function Dashboard() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Berater Empfehlung */}
+            {featuredAdvisor && (
+              <div>
+                <h2 className={`font-semibold text-lg mb-3 flex items-center gap-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  💬 Persönliche Beratung
+                </h2>
+                <AdvisorCard
+                  advisor={featuredAdvisor}
+                  darkMode={darkMode}
+                  userId={currentUser?.id}
+                  onReviewAdded={() => {
+                    getFeaturedAdvisor().then(setFeaturedAdvisor);
+                  }}
+                />
               </div>
             )}
 
