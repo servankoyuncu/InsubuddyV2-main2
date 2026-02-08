@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check, Shield, ExternalLink, Star, Info, Sparkles, Crown } from 'lucide-react';
+import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Users, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check, Shield, ExternalLink, Star, Info, Sparkles, Crown, Heart, Car, Building, Baby, Briefcase, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { addPolicy, getUserPolicies, deletePolicy } from '../services/policyservice';
 import { getNotificationSettings, checkExpiringPolicies } from '../services/notificationService';
@@ -13,8 +13,9 @@ import Onboarding from '../components/Onboarding';
 import PolicyUploader from '../components/PolicyUploader';
 import PremiumModal from '../components/PremiumModal';
 import AdvisorCard from '../components/AdvisorCard';
+import PDFViewer from '../components/PDFViewer';
 import { checkPremiumStatus, PREMIUM_FEATURES } from '../services/premiumService';
-import { getFeaturedAdvisor } from '../services/advisorService';
+import { getFeaturedAdvisor, getActiveAdvisors } from '../services/advisorService';
 
 // Deckungen-Templates mit detaillierten Beschreibungen
 const coverageTemplates = {
@@ -154,6 +155,91 @@ const coverageTemplates = {
   ]
 };
 
+// Deckungslücken-Radar: Empfohlene Versicherungen für die Schweiz
+const RECOMMENDED_INSURANCES = [
+  { type: 'Krankenkasse', priority: 'pflicht', label: 'Krankenkasse', description: 'Obligatorisch in der Schweiz', icon: Heart },
+  { type: 'Haftpflicht', priority: 'sehr_empfohlen', label: 'Haftpflicht', description: 'Schützt vor Schadenersatzforderungen Dritter', icon: Shield },
+  { type: 'Hausrat', priority: 'sehr_empfohlen', label: 'Hausrat', description: 'Schützt dein Hab und Gut bei Schäden', icon: Home },
+  { type: 'Rechtsschutz', priority: 'empfohlen', label: 'Rechtsschutz', description: 'Hilft bei rechtlichen Streitigkeiten', icon: FileText },
+  { type: 'Auto', priority: 'situativ', label: 'Auto', description: 'Pflicht wenn du ein Auto besitzt', icon: Car },
+  { type: 'Gebäude', priority: 'situativ', label: 'Gebäude', description: 'Wichtig für Immobilienbesitzer', icon: Building },
+  { type: 'Reise', priority: 'optional', label: 'Reise', description: 'Für Vielreisende empfohlen', icon: Globe },
+];
+
+// Lebensereignis-Checker: Events mit Versicherungsempfehlungen
+const LIFE_EVENTS = [
+  {
+    id: 'umzug', label: 'Umzug', icon: Home,
+    tips: [
+      { text: 'Hausratversicherung an neue Adresse anpassen', relatedType: 'Hausrat' },
+      { text: 'Gebäudeversicherung prüfen (falls Eigentum)', relatedType: 'Gebäude' },
+      { text: 'Haftpflichtversicherung aktualisieren', relatedType: 'Haftpflicht' },
+    ]
+  },
+  {
+    id: 'heirat', label: 'Heirat', icon: Heart,
+    tips: [
+      { text: 'Haftpflicht zusammenlegen (spart Prämie)', relatedType: 'Haftpflicht' },
+      { text: 'Hausrat zusammenlegen', relatedType: 'Hausrat' },
+      { text: 'Begünstigte in Lebensversicherung anpassen', relatedType: null },
+      { text: 'Krankenkasse: Familienrabatte prüfen', relatedType: 'Krankenkasse' },
+    ]
+  },
+  {
+    id: 'kind', label: 'Kind', icon: Baby,
+    tips: [
+      { text: 'Kind bei Krankenkasse anmelden', relatedType: 'Krankenkasse' },
+      { text: 'Haftpflicht auf Familienpolice erweitern', relatedType: 'Haftpflicht' },
+      { text: 'Lebensversicherung abschliessen / anpassen', relatedType: null },
+      { text: 'Hausrat-Versicherungssumme erhöhen', relatedType: 'Hausrat' },
+    ]
+  },
+  {
+    id: 'auto', label: 'Auto kaufen', icon: Car,
+    tips: [
+      { text: 'Autoversicherung (Haftpflicht + Kasko) abschliessen', relatedType: 'Auto' },
+      { text: 'Verkehrsrechtsschutz prüfen', relatedType: 'Rechtsschutz' },
+      { text: 'Pannenhilfe / Assistance einschliessen', relatedType: 'Auto' },
+    ]
+  },
+  {
+    id: 'hauskauf', label: 'Hauskauf', icon: Building,
+    tips: [
+      { text: 'Gebäudeversicherung abschliessen (oft kantonal)', relatedType: 'Gebäude' },
+      { text: 'Hausratversicherung anpassen', relatedType: 'Hausrat' },
+      { text: 'Erdbebenversicherung prüfen', relatedType: null },
+      { text: 'Hypothekarversicherung / Todesfallrisiko', relatedType: null },
+    ]
+  },
+  {
+    id: 'scheidung', label: 'Scheidung', icon: Users,
+    tips: [
+      { text: 'Haftpflicht: Einzelpolice abschliessen', relatedType: 'Haftpflicht' },
+      { text: 'Hausrat: Eigene Police abschliessen', relatedType: 'Hausrat' },
+      { text: 'Begünstigte in allen Policen ändern', relatedType: null },
+      { text: 'Krankenkasse: Prämienverbilligung prüfen', relatedType: 'Krankenkasse' },
+    ]
+  },
+  {
+    id: 'pension', label: 'Pensionierung', icon: Clock,
+    tips: [
+      { text: 'Vorsorge: 2. und 3. Säule prüfen', relatedType: null },
+      { text: 'Krankenkasse: Franchise und Modell optimieren', relatedType: 'Krankenkasse' },
+      { text: 'Unfallversicherung: Privat abschliessen (nicht mehr über Arbeitgeber)', relatedType: null },
+      { text: 'Rechtsschutz beibehalten', relatedType: 'Rechtsschutz' },
+    ]
+  },
+  {
+    id: 'selbstaendig', label: 'Selbständigkeit', icon: Briefcase,
+    tips: [
+      { text: 'Unfallversicherung selbst abschliessen (UVG-Pflicht entfällt)', relatedType: null },
+      { text: 'Berufshaftpflicht prüfen', relatedType: 'Haftpflicht' },
+      { text: 'Krankentaggeld-Versicherung abschliessen', relatedType: null },
+      { text: 'BVG: Freiwillig weiterversichern', relatedType: null },
+    ]
+  },
+];
+
 function Dashboard() {
   const { currentUser, logout } = useAuth();
   const { isAdmin } = useAdmin();
@@ -232,6 +318,10 @@ function Dashboard() {
 
   // Advisor State
   const [featuredAdvisor, setFeaturedAdvisor] = useState(null);
+  const [advisors, setAdvisors] = useState([]);
+
+  // Lebensereignis-Checker State
+  const [selectedLifeEvent, setSelectedLifeEvent] = useState(null);
 
   // Handler für extrahierte Policy aus PDF
   const handlePolicyExtracted = async (policyData, file) => {
@@ -286,17 +376,19 @@ function Dashboard() {
     checkPremium();
   }, [currentUser?.id]);
 
-  // Featured Advisor laden
+  // Berater laden
   useEffect(() => {
-    const loadAdvisor = async () => {
+    const loadAdvisors = async () => {
       try {
-        const advisor = await getFeaturedAdvisor();
-        setFeaturedAdvisor(advisor);
+        const allAdvisors = await getActiveAdvisors();
+        setAdvisors(allAdvisors);
+        const featured = allAdvisors.find(a => a.featured) || null;
+        setFeaturedAdvisor(featured);
       } catch (error) {
-        console.error('Fehler beim Laden des Beraters:', error);
+        console.error('Fehler beim Laden der Berater:', error);
       }
     };
-    loadAdvisor();
+    loadAdvisors();
   }, []);
 
   // 2. Partner-Versicherungen laden (UMGESTELLT AUF SUPABASE)
@@ -392,6 +484,7 @@ function Dashboard() {
       tab_policies: 'Policen',
       tab_vault: 'Tresor',
       tab_finances: 'Finanzen',
+      tab_advisors: 'Berater',
       tab_profile: 'Profil',
       active_policies: 'Aktive Policen',
       secured_values: 'Gesicherte Werte',
@@ -451,6 +544,7 @@ function Dashboard() {
       tab_policies: 'Policies',
       tab_vault: 'Vault',
       tab_finances: 'Finances',
+      tab_advisors: 'Advisors',
       tab_profile: 'Profile',
       active_policies: 'Active Policies',
       secured_values: 'Secured Values',
@@ -885,23 +979,6 @@ function Dashboard() {
               </div>
             )}
 
-            {/* Berater Empfehlung */}
-            {featuredAdvisor && (
-              <div>
-                <h2 className={`font-semibold text-lg mb-3 flex items-center gap-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  💬 Persönliche Beratung
-                </h2>
-                <AdvisorCard
-                  advisor={featuredAdvisor}
-                  darkMode={darkMode}
-                  userId={currentUser?.id}
-                  onReviewAdded={() => {
-                    getFeaturedAdvisor().then(setFeaturedAdvisor);
-                  }}
-                />
-              </div>
-            )}
-
             {/* Quick Stats Kachel */}
             {policies.length > 0 && (
               <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
@@ -971,6 +1048,199 @@ function Dashboard() {
                 </div>
               </div>
             )}
+
+            {/* Deckungslücken-Radar */}
+            {(() => {
+              const userTypes = policies.map(p => p.type);
+              const covered = RECOMMENDED_INSURANCES.filter(ins =>
+                userTypes.some(t => t && t.toLowerCase().includes(ins.type.toLowerCase()))
+              );
+              const missing = RECOMMENDED_INSURANCES.filter(ins =>
+                !userTypes.some(t => t && t.toLowerCase().includes(ins.type.toLowerCase()))
+              );
+              const total = RECOMMENDED_INSURANCES.length;
+              const coveredCount = covered.length;
+              const percentage = Math.round((coveredCount / total) * 100);
+
+              const priorityColor = (priority) => {
+                const colors = {
+                  pflicht: { bg: darkMode ? 'bg-red-900/40' : 'bg-red-50', text: darkMode ? 'text-red-300' : 'text-red-700', badge: darkMode ? 'bg-red-800 text-red-200' : 'bg-red-100 text-red-700', label: 'Pflicht' },
+                  sehr_empfohlen: { bg: darkMode ? 'bg-orange-900/40' : 'bg-orange-50', text: darkMode ? 'text-orange-300' : 'text-orange-700', badge: darkMode ? 'bg-orange-800 text-orange-200' : 'bg-orange-100 text-orange-700', label: 'Sehr empfohlen' },
+                  empfohlen: { bg: darkMode ? 'bg-yellow-900/40' : 'bg-yellow-50', text: darkMode ? 'text-yellow-300' : 'text-yellow-700', badge: darkMode ? 'bg-yellow-800 text-yellow-200' : 'bg-yellow-100 text-yellow-700', label: 'Empfohlen' },
+                  situativ: { bg: darkMode ? 'bg-blue-900/40' : 'bg-blue-50', text: darkMode ? 'text-blue-300' : 'text-blue-700', badge: darkMode ? 'bg-blue-800 text-blue-200' : 'bg-blue-100 text-blue-700', label: 'Situativ' },
+                  optional: { bg: darkMode ? 'bg-gray-700/40' : 'bg-gray-50', text: darkMode ? 'text-gray-300' : 'text-gray-600', badge: darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600', label: 'Optional' },
+                };
+                return colors[priority] || colors.optional;
+              };
+
+              return (
+                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`p-2 rounded-lg ${darkMode ? 'bg-blue-900' : 'bg-blue-100'}`}>
+                      <Shield className={`w-6 h-6 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                    </div>
+                    <div>
+                      <h2 className={`font-semibold text-lg ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                        Deckungslücken-Radar
+                      </h2>
+                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        Wie gut bist du abgesichert?
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Fortschrittsbalken */}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        {coveredCount} von {total} abgedeckt
+                      </span>
+                      <span className={`text-sm font-bold ${percentage >= 70 ? 'text-green-500' : percentage >= 40 ? 'text-orange-500' : 'text-red-500'}`}>
+                        {percentage}%
+                      </span>
+                    </div>
+                    <div className={`w-full h-3 rounded-full overflow-hidden ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${percentage >= 70 ? 'bg-green-500' : percentage >= 40 ? 'bg-orange-500' : 'bg-red-500'}`}
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {missing.length === 0 ? (
+                    <div className={`p-4 rounded-xl flex items-center gap-3 ${darkMode ? 'bg-green-900/30' : 'bg-green-50'}`}>
+                      <CheckCircle className="w-6 h-6 text-green-500" />
+                      <div>
+                        <p className={`font-semibold ${darkMode ? 'text-green-300' : 'text-green-700'}`}>Gut abgesichert!</p>
+                        <p className={`text-sm ${darkMode ? 'text-green-400' : 'text-green-600'}`}>Du hast alle wichtigen Versicherungen abgedeckt.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {missing.map(ins => {
+                        const colors = priorityColor(ins.priority);
+                        const IconComp = ins.icon;
+                        return (
+                          <div key={ins.type} className={`p-3 rounded-xl flex items-center gap-3 ${colors.bg}`}>
+                            <IconComp className={`w-5 h-5 ${colors.text}`} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className={`font-medium text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>{ins.label}</span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${colors.badge}`}>{colors.label}</span>
+                              </div>
+                              <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{ins.description}</p>
+                            </div>
+                            <AlertCircle className={`w-4 h-4 flex-shrink-0 ${colors.text}`} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Vorhandene als kleine Chips */}
+                  {covered.length > 0 && missing.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-dashed" style={{ borderColor: darkMode ? '#374151' : '#E5E7EB' }}>
+                      <p className={`text-xs font-medium mb-2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>ABGEDECKT</p>
+                      <div className="flex flex-wrap gap-2">
+                        {covered.map(ins => (
+                          <span key={ins.type} className={`text-xs px-2.5 py-1 rounded-full flex items-center gap-1 ${darkMode ? 'bg-green-900/30 text-green-400' : 'bg-green-50 text-green-700'}`}>
+                            <CheckCircle className="w-3 h-3" />
+                            {ins.label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Lebensereignis-Checker */}
+            <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`p-2 rounded-lg ${darkMode ? 'bg-purple-900' : 'bg-purple-100'}`}>
+                  <Sparkles className={`w-6 h-6 ${darkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+                </div>
+                <div>
+                  <h2 className={`font-semibold text-lg ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Lebensereignis-Checker
+                  </h2>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Was steht bei dir an?
+                  </p>
+                </div>
+              </div>
+
+              {/* Event Grid */}
+              <div className="grid grid-cols-4 gap-2 mb-2">
+                {LIFE_EVENTS.map(event => {
+                  const IconComp = event.icon;
+                  const isSelected = selectedLifeEvent === event.id;
+                  return (
+                    <button
+                      key={event.id}
+                      onClick={() => setSelectedLifeEvent(isSelected ? null : event.id)}
+                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all text-center ${
+                        isSelected
+                          ? 'bg-purple-600 text-white shadow-lg scale-105'
+                          : darkMode
+                            ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                            : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      <IconComp className="w-5 h-5" />
+                      <span className="text-xs font-medium leading-tight">{event.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Selected Event Details */}
+              {selectedLifeEvent && (() => {
+                const event = LIFE_EVENTS.find(e => e.id === selectedLifeEvent);
+                if (!event) return null;
+                const userTypes = policies.map(p => p.type);
+
+                return (
+                  <div className={`mt-4 p-4 rounded-xl ${darkMode ? 'bg-gray-700/50' : 'bg-purple-50'}`}>
+                    <h3 className={`font-semibold mb-3 flex items-center gap-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      <event.icon className="w-5 h-5 text-purple-500" />
+                      Checkliste: {event.label}
+                    </h3>
+                    <div className="space-y-2.5">
+                      {event.tips.map((tip, idx) => {
+                        const hasCoverage = tip.relatedType && userTypes.some(t => t && t.toLowerCase().includes(tip.relatedType.toLowerCase()));
+                        return (
+                          <div key={idx} className="flex items-start gap-3">
+                            {hasCoverage ? (
+                              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                            ) : (
+                              <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${tip.relatedType ? 'text-red-500' : 'text-orange-400'}`} />
+                            )}
+                            <div>
+                              <p className={`text-sm ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>{tip.text}</p>
+                              {hasCoverage && (
+                                <p className="text-xs text-green-500 mt-0.5">Bereits abgedeckt</p>
+                              )}
+                              {!hasCoverage && tip.relatedType && (
+                                <p className="text-xs text-red-400 mt-0.5">Noch nicht vorhanden</p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('advisors')}
+                      className="mt-4 w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+                    >
+                      <Users className="w-4 h-4" />
+                      Berater kontaktieren
+                    </button>
+                  </div>
+                );
+              })()}
+            </div>
 
             {/* Empfohlene Versicherungen */}
             {partnerInsurances.length > 0 && (
@@ -1316,6 +1586,42 @@ function Dashboard() {
           />
         )}
 
+        {activeTab === 'advisors' && (
+          <div className="space-y-4">
+            <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
+              <h2 className={`text-xl font-bold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                Empfohlene Berater
+              </h2>
+              <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                Finde den passenden Versicherungsberater in deiner Nähe
+              </p>
+            </div>
+
+            {advisors.length === 0 ? (
+              <div className={`text-center py-12 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                <Users className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
+                <p className="font-medium text-lg mb-2">Noch keine Berater verfügbar</p>
+                <p className="text-sm">Berater werden bald hinzugefügt.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {advisors.map(advisor => (
+                  <AdvisorCard
+                    key={advisor.id}
+                    advisor={advisor}
+                    darkMode={darkMode}
+                    collapsible={true}
+                    userId={currentUser?.id}
+                    onReviewAdded={() => {
+                      getActiveAdvisors().then(setAdvisors);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'profile' && (
           <div className="space-y-4">
             <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white p-6 rounded-lg">
@@ -1472,11 +1778,15 @@ function Dashboard() {
             <Camera className="w-6 h-6" />
             <span className="text-xs">{t('tab_vault')}</span>
           </button>
-          <button onClick={() => setActiveTab('finances')} className={`flex flex-col items-center gap-1 py-2 px-4 ${activeTab === 'finances' ? 'text-green-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+          <button onClick={() => setActiveTab('finances')} className={`flex flex-col items-center gap-1 py-2 px-3 ${activeTab === 'finances' ? 'text-green-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             <TrendingUp className="w-6 h-6" />
             <span className="text-xs">{t('tab_finances')}</span>
           </button>
-          <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center gap-1 py-2 px-4 ${activeTab === 'profile' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+          <button onClick={() => setActiveTab('advisors')} className={`flex flex-col items-center gap-1 py-2 px-3 ${activeTab === 'advisors' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            <Users className="w-6 h-6" />
+            <span className="text-xs">{t('tab_advisors')}</span>
+          </button>
+          <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center gap-1 py-2 px-3 ${activeTab === 'profile' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             <User className="w-6 h-6" />
             <span className="text-xs">{t('tab_profile')}</span>
           </button>
@@ -2053,13 +2363,7 @@ function Dashboard() {
                 </button>
               </div>
             </div>
-            <div className="flex-1 overflow-auto bg-gray-100">
-              <iframe
-                src={selectedPDF.file.data}
-                className="w-full h-full"
-                title="PDF Viewer"
-              />
-            </div>
+            <PDFViewer pdfData={selectedPDF.file.data} />
           </div>
         </div>
       )}
