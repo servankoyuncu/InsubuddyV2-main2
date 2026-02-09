@@ -909,9 +909,9 @@ function Dashboard() {
 
       <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b px-4 pt-12 pb-4`}>
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div>
+          <div className="flex items-center gap-2">
+            <img src="/icons/appstore.png" alt="InsuBuddy" className="w-9 h-9 rounded-lg" />
             <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('app_title')}</h1>
-            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('app_subtitle')}</p>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setShowExportMenu(true)} className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
@@ -930,6 +930,9 @@ function Dashboard() {
             </button>
             <button onClick={() => setDarkMode(!darkMode)} className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
               {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+            <button onClick={() => setActiveTab('profile')} className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} ${activeTab === 'profile' ? 'ring-2 ring-blue-500' : ''}`}>
+              <User className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -1660,7 +1663,7 @@ function Dashboard() {
                       setNotificationSettings(newSettings);
                       try {
                         const { saveNotificationSettings } = await import('../services/notificationService');
-                        await saveNotificationSettings(currentUser.uid, newSettings);
+                        await saveNotificationSettings(currentUser.id, newSettings);
                       } catch (error) {
                         console.error('Fehler beim Speichern:', error);
                       }
@@ -1691,7 +1694,7 @@ function Dashboard() {
                             setNotificationSettings(newSettings);
                             try {
                               const { saveNotificationSettings } = await import('../services/notificationService');
-                              await saveNotificationSettings(currentUser.uid, newSettings);
+                              await saveNotificationSettings(currentUser.id, newSettings);
                             } catch (error) {
                               console.error('Fehler beim Speichern:', error);
                             }
@@ -1786,10 +1789,6 @@ function Dashboard() {
           <button onClick={() => setActiveTab('advisors')} className={`flex flex-col items-center gap-1 py-2 px-3 ${activeTab === 'advisors' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             <Users className="w-6 h-6" />
             <span className="text-xs">{t('tab_advisors')}</span>
-          </button>
-          <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center gap-1 py-2 px-3 ${activeTab === 'profile' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            <User className="w-6 h-6" />
-            <span className="text-xs">{t('tab_profile')}</span>
           </button>
         </div>
       </div>

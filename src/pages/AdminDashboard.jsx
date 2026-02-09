@@ -216,6 +216,53 @@ function AdminDashboard() {
     setNotificationForm({ title: '', message: '', type: 'info' });
   };
 
+  const openEditNotification = (n) => {
+    setEditingNotification(n);
+    setNotificationForm({
+      title: n.title,
+      message: n.message,
+      type: n.type || 'info'
+    });
+    setShowNotificationModal(true);
+  };
+
+  const handleNotificationSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingNotification) {
+        await supabase.from('admin_notifications').update({
+          title: notificationForm.title,
+          message: notificationForm.message,
+          type: notificationForm.type,
+          updated_at: new Date().toISOString()
+        }).eq('id', editingNotification.id);
+      } else {
+        await supabase.from('admin_notifications').insert([{
+          title: notificationForm.title,
+          message: notificationForm.message,
+          type: notificationForm.type,
+          active: true
+        }]);
+      }
+      resetNotificationForm();
+      setShowNotificationModal(false);
+      fetchData();
+    } catch (error) {
+      console.error('Fehler beim Speichern der Benachrichtigung:', error);
+      alert('Fehler beim Speichern');
+    }
+  };
+
+  const handleDeleteNotification = async (id) => {
+    if (!window.confirm('Benachrichtigung wirklich löschen?')) return;
+    try {
+      await supabase.from('admin_notifications').delete().eq('id', id);
+      fetchData();
+    } catch (error) {
+      console.error('Fehler beim Löschen:', error);
+    }
+  };
+
   // --- ADVISOR HANDLERS ---
   const resetAdvisorForm = () => {
     setEditingAdvisor(null);
@@ -563,7 +610,7 @@ function AdminDashboard() {
                       {n.active ? 'Aktiv' : 'Inaktiv'}
                     </button>
                     <button onClick={() => openEditNotification(n)} className="text-blue-600"><Edit2 className="w-4 h-4"/></button>
-                    <button onClick={() => alert('Löschen via Supabase Client implementieren')} className="text-red-600"><Trash2 className="w-4 h-4"/></button>
+                    <button onClick={() => handleDeleteNotification(n.id)} className="text-red-600"><Trash2 className="w-4 h-4"/></button>
                   </div>
                 </div>
               ))}
@@ -600,6 +647,69 @@ function AdminDashboard() {
                   <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Abbrechen</button>
                 </div>
              </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL NOTIFICATION */}
+      {showNotificationModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl p-6 max-w-lg w-full shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900">{editingNotification ? 'Benachrichtigung bearbeiten' : 'Neue Benachrichtigung'}</h2>
+              <button onClick={() => { setShowNotificationModal(false); resetNotificationForm(); }}><X className="w-6 h-6 text-gray-400" /></button>
+            </div>
+            <form onSubmit={handleNotificationSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Titel</label>
+                <input
+                  className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={notificationForm.title}
+                  onChange={e => setNotificationForm({...notificationForm, title: e.target.value})}
+                  placeholder="Benachrichtigungstitel"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nachricht</label>
+                <textarea
+                  className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  rows="3"
+                  value={notificationForm.message}
+                  onChange={e => setNotificationForm({...notificationForm, message: e.target.value})}
+                  placeholder="Nachrichtentext..."
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Typ</label>
+                <div className="flex gap-2">
+                  {notificationTypes.map(type => (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() => setNotificationForm({...notificationForm, type: type.value})}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
+                        notificationForm.type === type.value
+                          ? `bg-${type.color}-50 border-${type.color}-300 text-${type.color}-700`
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      <type.icon className="w-4 h-4" />
+                      {type.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button type="submit" className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                  <Save className="w-4 h-4" /> Speichern
+                </button>
+                <button type="button" onClick={() => { setShowNotificationModal(false); resetNotificationForm(); }} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                  Abbrechen
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
