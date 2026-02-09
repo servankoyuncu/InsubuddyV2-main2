@@ -2050,8 +2050,8 @@ function Dashboard() {
 
       {/* Notifications Modal */}
       {showNotifications && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center p-0 z-50">
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-t-2xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col`}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col shadow-2xl`}>
             <div className={`p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-between`}>
               <div>
                 <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('notifications')}</h2>
