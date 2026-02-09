@@ -911,7 +911,7 @@ function Dashboard() {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src="/icons/appstore.png" alt="InsuBuddy" className="w-9 h-9 rounded-lg" />
-            <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('app_title')}</h1>
+            <span className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('app_title')}</span>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setShowExportMenu(true)} className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
