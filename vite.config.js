@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: './', // NEU - wichtig für Capacitor!
+  base: process.env.CAPACITOR_BUILD === 'true' ? './' : '/',
   build: {
     outDir: 'dist',
     assetsDir: 'assets'
