@@ -1612,6 +1612,7 @@ function Dashboard() {
                     darkMode={darkMode}
                     collapsible={true}
                     userId={currentUser?.id}
+                    policies={policies}
                     onReviewAdded={() => {
                       getActiveAdvisors().then(setAdvisors);
                     }}

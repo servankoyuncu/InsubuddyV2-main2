@@ -366,6 +366,75 @@ export const deleteReview = async (reviewId, userId) => {
   }
 };
 
+// =====================================================
+// POLICY SHARING FUNCTIONS
+// =====================================================
+
+/**
+ * Policen an Berater senden
+ */
+export const sharePoliciesWithAdvisor = async (userId, advisorId, policyIds, message = '') => {
+  try {
+    const { data, error } = await supabase
+      .from('shared_policies')
+      .insert([{
+        user_id: userId,
+        advisor_id: advisorId,
+        policy_ids: policyIds,
+        message: message || null,
+        status: 'pending'
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error) {
+    console.error('Fehler beim Teilen der Policen:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Geteilte Policen für Berater laden (Admin/Berater-Sicht)
+ */
+export const getSharedPoliciesForAdvisor = async (advisorId) => {
+  try {
+    const { data, error } = await supabase
+      .from('shared_policies')
+      .select('*')
+      .eq('advisor_id', advisorId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Fehler beim Laden geteilter Policen:', error);
+    return [];
+  }
+};
+
+/**
+ * Prüfen ob User bereits Policen an diesen Berater geteilt hat
+ */
+export const hasUserSharedWithAdvisor = async (userId, advisorId) => {
+  try {
+    const { data, error } = await supabase
+      .from('shared_policies')
+      .select('id, created_at')
+      .eq('user_id', userId)
+      .eq('advisor_id', advisorId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+    return data && data.length > 0 ? data[0] : null;
+  } catch (error) {
+    console.error('Fehler beim Prüfen geteilter Policen:', error);
+    return null;
+  }
+};
+
 /**
  * Formatiert das Rating als Sterne-Text
  */

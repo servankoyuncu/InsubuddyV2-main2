@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AccountSettings from './pages/AccountSettings';
 import AccountDeleted from './pages/AccountDeleted';
+import ShareView from './pages/ShareView';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
             }
           />
           <Route path="/account-deleted" element={<AccountDeleted />} />
+          <Route path="/share/:code" element={<ShareView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Mail, MessageCircle, Star, UserCheck, Globe, MapPin, BadgeCheck, Home, Car, Building, Heart, ChevronDown, ChevronUp } from 'lucide-react';
+import { Phone, Mail, MessageCircle, Star, UserCheck, Globe, MapPin, BadgeCheck, Home, Car, Building, Heart, ChevronDown, ChevronUp, Send } from 'lucide-react';
 import {
   generateWhatsAppLink,
   generatePhoneLink,
@@ -9,6 +9,7 @@ import {
   ADVISOR_TOPICS
 } from '../services/advisorService';
 import ReviewModal from './ReviewModal';
+import SharePoliciesModal from './SharePoliciesModal';
 
 // Topic Icon Mapping
 const TopicIcons = {
@@ -20,8 +21,9 @@ const TopicIcons = {
   vorsorge: () => <span className="text-sm">CHF</span>
 };
 
-const AdvisorCard = ({ advisor, darkMode = false, compact = false, collapsible = false, userId = null, onReviewAdded }) => {
+const AdvisorCard = ({ advisor, darkMode = false, compact = false, collapsible = false, userId = null, policies = [], onReviewAdded }) => {
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [reviews, setReviews] = useState([]);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [userHasReviewed, setUserHasReviewed] = useState(false);
@@ -279,6 +281,17 @@ const AdvisorCard = ({ advisor, darkMode = false, compact = false, collapsible =
                       </button>
                     )}
                   </div>
+
+                  {/* Policen senden Button */}
+                  {userId && policies.length > 0 && (
+                    <button
+                      onClick={() => setShowShareModal(true)}
+                      className="w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white shadow-lg shadow-cyan-500/25"
+                    >
+                      <Send className="w-5 h-5" />
+                      Policen senden
+                    </button>
+                  )}
                 </div>
 
                 {/* Reviews Section */}
@@ -364,6 +377,18 @@ const AdvisorCard = ({ advisor, darkMode = false, compact = false, collapsible =
             darkMode={darkMode}
             onClose={() => setShowReviewModal(false)}
             onReviewSubmitted={handleReviewSubmitted}
+          />
+        )}
+
+        {/* Share Policies Modal */}
+        {showShareModal && (
+          <SharePoliciesModal
+            advisor={advisor}
+            policies={policies}
+            userId={userId}
+            darkMode={darkMode}
+            onClose={() => setShowShareModal(false)}
+            onShared={() => setShowShareModal(false)}
           />
         )}
       </>
@@ -547,6 +572,17 @@ const AdvisorCard = ({ advisor, darkMode = false, compact = false, collapsible =
                 </button>
               )}
             </div>
+
+            {/* Policen senden Button */}
+            {userId && policies.length > 0 && (
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white shadow-lg shadow-cyan-500/25"
+              >
+                <Send className="w-5 h-5" />
+                Policen senden
+              </button>
+            )}
           </div>
 
           {/* Reviews Section */}
@@ -630,6 +666,18 @@ const AdvisorCard = ({ advisor, darkMode = false, compact = false, collapsible =
           darkMode={darkMode}
           onClose={() => setShowReviewModal(false)}
           onReviewSubmitted={handleReviewSubmitted}
+        />
+      )}
+
+      {/* Share Policies Modal */}
+      {showShareModal && (
+        <SharePoliciesModal
+          advisor={advisor}
+          policies={policies}
+          userId={userId}
+          darkMode={darkMode}
+          onClose={() => setShowShareModal(false)}
+          onShared={() => setShowShareModal(false)}
         />
       )}
     </>

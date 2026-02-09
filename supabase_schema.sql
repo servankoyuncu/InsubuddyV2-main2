@@ -489,3 +489,83 @@ BEGIN
   RETURN result;
 END;
 $$;
+
+-- =====================================================
+-- SHARED POLICIES TABLE
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS shared_policies (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  advisor_id UUID NOT NULL REFERENCES advisors(id) ON DELETE CASCADE,
+  policy_ids UUID[] NOT NULL DEFAULT '{}',
+  message TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'viewed', 'replied')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS aktivieren
+ALTER TABLE shared_policies ENABLE ROW LEVEL SECURITY;
+
+-- User kann eigene geteilten Policen sehen und erstellen
+CREATE POLICY "Users can insert own shared policies"
+  ON shared_policies FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can view own shared policies"
+  ON shared_policies FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Trigger für updated_at
+DROP TRIGGER IF EXISTS update_shared_policies_updated_at ON shared_policies;
+CREATE TRIGGER update_shared_policies_updated_at
+  BEFORE UPDATE ON shared_policies
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
+-- POLICY SHARES (Temporäre Sharing-Links)
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS policy_shares (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  share_code VARCHAR(8) NOT NULL UNIQUE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  policy_ids UUID[] NOT NULL,
+  policy_data JSONB NOT NULL,
+  advisor_name TEXT,
+  message TEXT,
+  expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days'),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  view_count INTEGER DEFAULT 0
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_policy_shares_code ON policy_shares(share_code);
+CREATE INDEX IF NOT EXISTS idx_policy_shares_expires ON policy_shares(expires_at);
+CREATE INDEX IF NOT EXISTS idx_policy_shares_user ON policy_shares(user_id);
+
+-- RLS
+ALTER TABLE policy_shares ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can create their own shares"
+  ON policy_shares FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Anyone can view non-expired shares"
+  ON policy_shares FOR SELECT
+  TO anon, authenticated
+  USING (expires_at > NOW());
+
+CREATE POLICY "Anyone can update view_count on non-expired shares"
+  ON policy_shares FOR UPDATE
+  TO anon, authenticated
+  USING (expires_at > NOW())
+  WITH CHECK (expires_at > NOW());
+
+CREATE POLICY "Users can delete their own shares"
+  ON policy_shares FOR DELETE
+  TO authenticated
+  USING (auth.uid() = user_id);
