@@ -5,7 +5,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AccountSettings from './pages/AccountSettings';
-import AccountDeleted from './pages/AccountDeleted';
+import AccountDeleted from './pages/Accountdeleted';
 import ShareView from './pages/ShareView';
 import ProtectedRoute from './components/ProtectedRoute';
 
