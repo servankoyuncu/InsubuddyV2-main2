@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Users, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check, Shield, ExternalLink, Star, Info, Sparkles, Crown, Heart, Car, Building, Baby, Briefcase, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -8,14 +8,16 @@ import { addValuableItem, getUserValuableItems, deleteValuableItem, calculateTot
 import { getActiveAdminNotifications } from '../services/adminNotificationService';
 import { useAdmin } from '../hooks/useAdmin';
 import { supabase } from '../supabase';
-import FinancialDashboard from '../components/FinancialDashboard';
 import Onboarding from '../components/Onboarding';
-import PolicyUploader from '../components/PolicyUploader';
-import PremiumModal from '../components/PremiumModal';
 import AdvisorCard from '../components/AdvisorCard';
-import PDFViewer from '../components/PDFViewer';
 import { checkPremiumStatus, PREMIUM_FEATURES } from '../services/premiumService';
 import { getFeaturedAdvisor, getActiveAdvisors } from '../services/advisorService';
+
+// Lazy Loading für schwere Komponenten
+const FinancialDashboard = lazy(() => import('../components/FinancialDashboard'));
+const PolicyUploader = lazy(() => import('../components/PolicyUploader'));
+const PremiumModal = lazy(() => import('../components/PremiumModal'));
+const PDFViewer = lazy(() => import('../components/PDFViewer'));
 
 // Deckungen-Templates mit detaillierten Beschreibungen
 const coverageTemplates = {
@@ -883,28 +885,31 @@ function Dashboard() {
 
       {/* Smart Import - PDF Uploader */}
       {showPolicyUploader && (
-        <PolicyUploader
-          onPolicyExtracted={handlePolicyExtracted}
-          onClose={() => setShowPolicyUploader(false)}
-          darkMode={darkMode}
-          coverageTemplates={coverageTemplates}
-        />
+        <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" /></div>}>
+          <PolicyUploader
+            onPolicyExtracted={handlePolicyExtracted}
+            onClose={() => setShowPolicyUploader(false)}
+            darkMode={darkMode}
+            coverageTemplates={coverageTemplates}
+          />
+        </Suspense>
       )}
 
       {/* Premium Modal */}
       {showPremiumModal && (
-        <PremiumModal
-          onClose={() => setShowPremiumModal(false)}
-          darkMode={darkMode}
-          userId={currentUser?.id}
-          featureRequested={PREMIUM_FEATURES.SMART_IMPORT}
-          onPremiumActivated={() => {
-            setIsPremium(true);
-            setShowPremiumModal(false);
-            // Optional: Direkt Smart Import öffnen nach Upgrade
-            setShowPolicyUploader(true);
-          }}
-        />
+        <Suspense fallback={null}>
+          <PremiumModal
+            onClose={() => setShowPremiumModal(false)}
+            darkMode={darkMode}
+            userId={currentUser?.id}
+            featureRequested={PREMIUM_FEATURES.SMART_IMPORT}
+            onPremiumActivated={() => {
+              setIsPremium(true);
+              setShowPremiumModal(false);
+              setShowPolicyUploader(true);
+            }}
+          />
+        </Suspense>
       )}
 
       <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b px-4 pt-14 pb-4`}>
@@ -1581,12 +1586,14 @@ function Dashboard() {
         )}
 
         {activeTab === 'finances' && (
-          <FinancialDashboard
-            policies={policies}
-            darkMode={darkMode}
-            language={language}
-            currentUser={currentUser}
-          />
+          <Suspense fallback={<div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>}>
+            <FinancialDashboard
+              policies={policies}
+              darkMode={darkMode}
+              language={language}
+              currentUser={currentUser}
+            />
+          </Suspense>
         )}
 
         {activeTab === 'advisors' && (
@@ -2363,7 +2370,9 @@ function Dashboard() {
                 </button>
               </div>
             </div>
-            <PDFViewer pdfData={selectedPDF.file.data} />
+            <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" /></div>}>
+              <PDFViewer pdfData={selectedPDF.file.data} />
+            </Suspense>
           </div>
         </div>
       )}

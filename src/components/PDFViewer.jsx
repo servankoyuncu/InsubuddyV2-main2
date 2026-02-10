@@ -66,8 +66,13 @@ const PDFViewer = ({ pdfData }) => {
       const finalScale = fitScale * scale;
       const scaledViewport = page.getViewport({ scale: finalScale });
 
-      canvas.height = scaledViewport.height;
-      canvas.width = scaledViewport.width;
+      // HiDPI/Retina Support für scharfe PDFs
+      const dpr = window.devicePixelRatio || 1;
+      canvas.height = scaledViewport.height * dpr;
+      canvas.width = scaledViewport.width * dpr;
+      canvas.style.width = `${scaledViewport.width}px`;
+      canvas.style.height = `${scaledViewport.height}px`;
+      context.scale(dpr, dpr);
 
       const renderContext = {
         canvasContext: context,
