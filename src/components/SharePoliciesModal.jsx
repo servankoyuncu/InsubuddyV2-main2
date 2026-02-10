@@ -32,7 +32,7 @@ const SharePoliciesModal = ({ advisor, policies, userId, darkMode, onClose }) =>
     selected.forEach((policy, idx) => {
       summary += `${idx + 1}. ${policy.type || policy.name}`;
       if (policy.company) summary += ` (${policy.company})`;
-      if (policy.premium) summary += ` - CHF ${policy.premium}/Jahr`;
+      if (policy.premium) summary += ` - ${policy.premium}`;
       if (policy.file?.data) summary += ` 📎`;
       summary += '\n';
     });
@@ -74,7 +74,7 @@ const SharePoliciesModal = ({ advisor, policies, userId, darkMode, onClose }) =>
       text += `\n\n_Gesendet über InsuBuddy_`;
 
       const phone = advisor.whatsapp || advisor.phone;
-      window.open(generateWhatsAppLink(phone, text), '_blank');
+      window.location.href = generateWhatsAppLink(phone, text);
       onClose();
     } catch (err) {
       console.error('Share Fehler:', err);

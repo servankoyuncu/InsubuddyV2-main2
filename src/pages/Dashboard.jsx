@@ -907,7 +907,7 @@ function Dashboard() {
         />
       )}
 
-      <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b px-4 pt-12 pb-4`}>
+      <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b px-4 pt-14 pb-4`}>
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src="/icons/appstore.png" alt="InsuBuddy" className="w-9 h-9 rounded-lg" />

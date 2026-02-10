@@ -21,7 +21,13 @@ const PDFViewer = ({ pdfData }) => {
       try {
         setLoading(true);
         setError(null);
-        const loadingTask = pdfjsLib.getDocument({ data: atob(pdfData.split(',')[1]) });
+        // Unterstütze sowohl Base64 Data-URLs als auch HTTP-URLs (Supabase Storage)
+        let loadingTask;
+        if (pdfData.startsWith('data:')) {
+          loadingTask = pdfjsLib.getDocument({ data: atob(pdfData.split(',')[1]) });
+        } else {
+          loadingTask = pdfjsLib.getDocument(pdfData);
+        }
         const pdfDoc = await loadingTask.promise;
         setPdf(pdfDoc);
         setTotalPages(pdfDoc.numPages);
