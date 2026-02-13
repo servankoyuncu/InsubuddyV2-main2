@@ -1,6 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Users, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check, Shield, ExternalLink, Star, Info, Sparkles, Crown, Heart, Car, Building, Baby, Briefcase, ChevronDown, MessageSquare, Send, Loader2 } from 'lucide-react';
+import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Users, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check, Shield, ExternalLink, Star, Info, Sparkles, Crown, Heart, Car, Building, Baby, Briefcase, ChevronDown, MessageSquare, Send, Loader2, Gift, Copy } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { addPolicy, getUserPolicies, deletePolicy } from '../services/policyservice';
 import { getNotificationSettings, checkExpiringPolicies } from '../services/notificationService';
@@ -12,6 +12,7 @@ import Onboarding from '../components/Onboarding';
 import AdvisorCard from '../components/AdvisorCard';
 import { checkPremiumStatus, PREMIUM_FEATURES } from '../services/premiumService';
 import { createTicket, getUserTickets } from '../services/ticketService';
+import { getOrCreateReferralCode, getReferralLink, getUserReferralStats } from '../services/referralService';
 import { getFeaturedAdvisor, getActiveAdvisors } from '../services/advisorService';
 
 // Lazy Loading für schwere Komponenten
@@ -323,6 +324,11 @@ function Dashboard() {
   const [ticketForm, setTicketForm] = useState({ subject: '', message: '', category: 'general' });
   const [ticketSubmitting, setTicketSubmitting] = useState(false);
 
+  // Referral State
+  const [referralCode, setReferralCode] = useState('');
+  const [referralStats, setReferralStats] = useState({ total: 0, signedUp: 0 });
+  const [copied, setCopied] = useState(false);
+
   // Advisor State
   const [featuredAdvisor, setFeaturedAdvisor] = useState(null);
   const [advisors, setAdvisors] = useState([]);
@@ -483,6 +489,54 @@ function Dashboard() {
   useEffect(() => {
     loadTickets();
   }, [currentUser]);
+
+  // Referral-Code laden
+  useEffect(() => {
+    const loadReferral = async () => {
+      if (!currentUser?.id) return;
+      try {
+        const code = await getOrCreateReferralCode(currentUser.id);
+        setReferralCode(code);
+        const stats = await getUserReferralStats(currentUser.id);
+        setReferralStats(stats);
+      } catch (error) {
+        console.error('Fehler beim Laden des Empfehlungscodes:', error);
+      }
+    };
+    loadReferral();
+  }, [currentUser]);
+
+  const handleCopyReferral = async () => {
+    const link = getReferralLink(referralCode);
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback
+      const textArea = document.createElement('textarea');
+      textArea.value = link;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleShareWhatsApp = () => {
+    const link = getReferralLink(referralCode);
+    const text = `Hey! Ich nutze InsuBuddy um meine Versicherungen zu verwalten. Probier es auch aus - ist kostenlos!\n${link}`;
+    window.location.href = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  };
+
+  const handleShareEmail = () => {
+    const link = getReferralLink(referralCode);
+    const subject = 'InsuBuddy - Versicherungen einfach verwalten';
+    const body = `Hallo,\n\nich nutze InsuBuddy um meine Versicherungen zu verwalten und finde die App super praktisch. Probier es auch aus - ist kostenlos!\n\n${link}\n\nFreundliche Grüsse`;
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
 
   const handleTicketSubmit = async (e) => {
     e.preventDefault();
@@ -1838,6 +1892,85 @@ function Dashboard() {
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Freunde einladen */}
+            <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border overflow-hidden`}>
+              <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-4 text-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                    <Gift className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Freunde einladen</h3>
+                    <p className="text-sm text-green-100">Teile InsuBuddy mit deinen Freunden</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 space-y-3">
+                {/* Referral Link + Copy */}
+                <div className={`flex items-center gap-2 p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Dein persönlicher Link</p>
+                    <p className={`text-sm font-mono truncate ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                      {referralCode ? getReferralLink(referralCode) : 'Wird geladen...'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleCopyReferral}
+                    disabled={!referralCode}
+                    className={`flex-shrink-0 p-2.5 rounded-lg transition-colors ${
+                      copied
+                        ? 'bg-green-500 text-white'
+                        : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                  >
+                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                {/* Share Buttons */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleShareWhatsApp}
+                    disabled={!referralCode}
+                    className="flex-1 py-2.5 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    WhatsApp
+                  </button>
+                  <button
+                    onClick={handleShareEmail}
+                    disabled={!referralCode}
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 ${
+                      darkMode
+                        ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    <Send className="w-4 h-4" />
+                    E-Mail
+                  </button>
+                </div>
+
+                {/* Stats */}
+                {referralStats.total > 0 && (
+                  <div className={`flex items-center gap-4 pt-2 border-t ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>
+                    <div className="flex items-center gap-1.5">
+                      <Users className={`w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                      <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                        {referralStats.total} eingeladen
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                        {referralStats.signedUp} registriert
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Admin-Bereich */}

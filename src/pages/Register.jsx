@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { Eye, EyeOff, Users } from 'lucide-react';
 import { handleSupabaseError } from '../supabase';
+import { trackReferralSignup } from '../services/referralService';
 
 export default function Register() {
   const [email, setEmail] = useState('');
@@ -14,6 +15,8 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const refCode = searchParams.get('ref');
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -29,7 +32,13 @@ export default function Register() {
     try {
       setError('');
       setLoading(true);
-      await signup(email, password);
+      const data = await signup(email, password);
+
+      // Referral tracken falls vorhanden
+      if (refCode && data?.user?.id) {
+        await trackReferralSignup(refCode, data.user.id, email);
+      }
+
       navigate('/');
     } catch (error) {
       console.error('Registration error:', error);
@@ -46,6 +55,12 @@ export default function Register() {
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
             Konto erstellen
           </h2>
+          {refCode && (
+            <div className="mt-3 flex items-center justify-center gap-2 text-green-600 dark:text-green-400">
+              <Users className="w-4 h-4" />
+              <p className="text-sm font-medium">Eingeladen von einem Freund</p>
+            </div>
+          )}
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (

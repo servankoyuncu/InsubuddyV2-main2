@@ -483,7 +483,9 @@ BEGIN
     'total_partners', (SELECT COUNT(*) FROM partner_insurances WHERE status = 'published'),
     'active_notifications', (SELECT COUNT(*) FROM admin_notifications WHERE active = true),
     'total_advisors', (SELECT COUNT(*) FROM advisors WHERE active = true),
-    'total_reviews', (SELECT COUNT(*) FROM advisor_reviews WHERE is_approved = true)
+    'total_reviews', (SELECT COUNT(*) FROM advisor_reviews WHERE is_approved = true),
+    'total_referrals', (SELECT COUNT(*) FROM referrals),
+    'successful_referrals', (SELECT COUNT(*) FROM referrals WHERE status = 'signed_up')
   ) INTO result;
 
   RETURN result;
@@ -627,3 +629,60 @@ CREATE TRIGGER update_support_tickets_updated_at
   BEFORE UPDATE ON support_tickets
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
+-- REFERRALS TABLE (Empfehlungssystem)
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS referrals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  referrer_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  referral_code VARCHAR(8) NOT NULL UNIQUE,
+  referred_email TEXT,
+  referred_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'signed_up')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  completed_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_referrals_code ON referrals(referral_code);
+
+-- RLS aktivieren
+ALTER TABLE referrals ENABLE ROW LEVEL SECURITY;
+
+-- User können eigene Referrals sehen
+DROP POLICY IF EXISTS "Users can view own referrals" ON referrals;
+CREATE POLICY "Users can view own referrals"
+  ON referrals FOR SELECT
+  TO authenticated
+  USING (auth.uid() = referrer_id);
+
+-- User können Referrals erstellen
+DROP POLICY IF EXISTS "Users can create referrals" ON referrals;
+CREATE POLICY "Users can create referrals"
+  ON referrals FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = referrer_id);
+
+-- Jeder kann Referral-Code validieren (für Register-Seite)
+DROP POLICY IF EXISTS "Anyone can validate referral code" ON referrals;
+CREATE POLICY "Anyone can validate referral code"
+  ON referrals FOR SELECT
+  USING (true);
+
+-- Jeder kann Referral aktualisieren (für Tracking nach Registrierung)
+DROP POLICY IF EXISTS "Anyone can update referral on signup" ON referrals;
+CREATE POLICY "Anyone can update referral on signup"
+  ON referrals FOR UPDATE
+  USING (true);
+
+-- Admins können alle Referrals sehen und verwalten
+DROP POLICY IF EXISTS "Admins can manage all referrals" ON referrals;
+CREATE POLICY "Admins can manage all referrals"
+  ON referrals FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM admins WHERE admins.id = auth.uid()
+    )
+  );

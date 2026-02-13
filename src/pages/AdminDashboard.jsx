@@ -7,7 +7,7 @@ import {
   Plus, Edit2, Trash2, Eye, EyeOff, Shield,
   Image as ImageIcon, Save, X, Bell, AlertCircle, CheckCircle, Info as InfoIcon,
   Users, FileText, Briefcase, UserCheck, Phone, Mail, MessageCircle, Star, Globe,
-  MapPin, BadgeCheck, Home, Car, Building, Heart, Stethoscope, PiggyBank
+  MapPin, BadgeCheck, Home, Car, Building, Heart, Stethoscope, PiggyBank, Gift
 } from 'lucide-react';
 import {
   getAllAdvisors,
@@ -489,7 +489,7 @@ function AdminDashboard() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         
         {/* STATS CARDS - Hier sind die neuen Statistiken */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
             <div className="p-3 bg-blue-50 rounded-lg"><Users className="w-6 h-6 text-blue-600" /></div>
             <div>
@@ -516,6 +516,13 @@ function AdminDashboard() {
             <div>
               <p className="text-xs text-gray-500 uppercase font-bold">Aktiv Info</p>
               <p className="text-2xl font-bold text-gray-900">{stats.active_notifications}</p>
+            </div>
+          </div>
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 rounded-lg"><Gift className="w-6 h-6 text-emerald-600" /></div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase font-bold">Empfehlungen</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.successful_referrals || 0}<span className="text-sm font-normal text-gray-400">/{stats.total_referrals || 0}</span></p>
             </div>
           </div>
         </div>
