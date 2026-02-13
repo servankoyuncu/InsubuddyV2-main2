@@ -19,6 +19,7 @@ import {
   ADVISOR_TOPICS,
   SWISS_CANTONS
 } from '../services/advisorService';
+import { getAllTickets, updateTicketStatus, replyToTicket, deleteTicket } from '../services/ticketService';
 
 function AdminDashboard() {
   const { isAdmin, loading: adminLoading } = useAdmin();
@@ -85,6 +86,13 @@ function AdminDashboard() {
     display_order: 0
   });
 
+  // Ticket State
+  const [tickets, setTickets] = useState([]);
+  const [showTicketDetailModal, setShowTicketDetailModal] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [ticketReply, setTicketReply] = useState('');
+  const [ticketStatus, setTicketStatus] = useState('open');
+
   const notificationTypes = [
     { value: 'info', label: 'Info', icon: InfoIcon, color: 'blue' },
     { value: 'success', label: 'Erfolg', icon: CheckCircle, color: 'green' },
@@ -126,6 +134,10 @@ function AdminDashboard() {
         .select('*')
         .order('display_order', { ascending: true });
       if (!aError) setAdvisors(advisorsData || []);
+
+      // 5. Tickets laden
+      const ticketsData = await getAllTickets();
+      setTickets(ticketsData);
 
     } catch (err) {
       console.error('Fehler beim Laden der Daten:', err);
@@ -261,6 +273,56 @@ function AdminDashboard() {
     } catch (error) {
       console.error('Fehler beim Löschen:', error);
     }
+  };
+
+  // --- TICKET HANDLERS ---
+  const openTicketDetail = (ticket) => {
+    setSelectedTicket(ticket);
+    setTicketReply(ticket.admin_reply || '');
+    setTicketStatus(ticket.status);
+    setShowTicketDetailModal(true);
+  };
+
+  const handleTicketSave = async () => {
+    if (!selectedTicket) return;
+    try {
+      if (ticketReply && ticketReply !== selectedTicket.admin_reply) {
+        await replyToTicket(selectedTicket.id, ticketReply, ticketStatus);
+      } else {
+        await updateTicketStatus(selectedTicket.id, ticketStatus);
+      }
+      setShowTicketDetailModal(false);
+      setSelectedTicket(null);
+      fetchData();
+    } catch (error) {
+      console.error('Fehler beim Speichern:', error);
+      alert('Fehler beim Speichern');
+    }
+  };
+
+  const handleTicketDelete = async (id) => {
+    if (!window.confirm('Ticket wirklich löschen?')) return;
+    try {
+      await deleteTicket(id);
+      fetchData();
+    } catch (error) {
+      console.error('Fehler beim Löschen:', error);
+    }
+  };
+
+  const getTicketStatusLabel = (status) => {
+    const labels = { open: 'Offen', in_progress: 'In Bearbeitung', resolved: 'Beantwortet', closed: 'Geschlossen' };
+    return labels[status] || status;
+  };
+
+  const getTicketStatusColor = (status) => {
+    const colors = { open: 'bg-yellow-100 text-yellow-800', in_progress: 'bg-blue-100 text-blue-800', resolved: 'bg-green-100 text-green-800', closed: 'bg-gray-100 text-gray-800' };
+    return colors[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getTicketCategoryLabel = (cat) => {
+    const labels = { general: 'Allgemein', technical: 'Technisch', policy: 'Police', billing: 'Abrechnung' };
+    return labels[cat] || cat;
   };
 
   // --- ADVISOR HANDLERS ---
@@ -411,6 +473,14 @@ function AdminDashboard() {
             </button>
             <button onClick={() => setActiveTab('notifications')} className={`pb-3 px-2 font-medium text-sm transition-colors ${activeTab === 'notifications' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
               Benachrichtigungen
+            </button>
+            <button onClick={() => setActiveTab('tickets')} className={`pb-3 px-2 font-medium text-sm transition-colors relative ${activeTab === 'tickets' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
+              Tickets
+              {tickets.filter(t => t.status === 'open').length > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
+                  {tickets.filter(t => t.status === 'open').length}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -615,6 +685,57 @@ function AdminDashboard() {
                 </div>
               ))}
             </div>
+          </>
+        )}
+        {/* TICKETS TAB */}
+        {activeTab === 'tickets' && (
+          <>
+            <div className="flex gap-3 mb-6">
+              {['open', 'in_progress', 'resolved', 'closed'].map(status => {
+                const count = tickets.filter(t => t.status === status).length;
+                return (
+                  <div key={status} className={`px-4 py-2 rounded-lg text-sm font-medium ${getTicketStatusColor(status)}`}>
+                    {getTicketStatusLabel(status)}: {count}
+                  </div>
+                );
+              })}
+            </div>
+            {tickets.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm p-8 text-center text-gray-500">
+                Keine Tickets vorhanden
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm divide-y">
+                {tickets.map(ticket => (
+                  <div key={ticket.id} className="p-5 hover:bg-gray-50 cursor-pointer" onClick={() => openTicketDetail(ticket)}>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-gray-900 truncate">{ticket.subject}</h3>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${getTicketStatusColor(ticket.status)}`}>
+                            {getTicketStatusLabel(ticket.status)}
+                          </span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                            {getTicketCategoryLabel(ticket.category)}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 truncate">{ticket.message}</p>
+                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                          <span>{ticket.user_email}</span>
+                          <span>{new Date(ticket.created_at).toLocaleDateString('de-CH')}</span>
+                          {ticket.admin_reply && <span className="text-green-600 font-medium">Beantwortet</span>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 ml-4">
+                        <button onClick={(e) => { e.stopPropagation(); handleTicketDelete(ticket.id); }} className="text-red-600 hover:bg-red-50 p-1 rounded">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>
@@ -971,6 +1092,85 @@ function AdminDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* MODAL TICKET DETAIL */}
+      {showTicketDetailModal && selectedTicket && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Ticket-Details</h2>
+              <button onClick={() => setShowTicketDetailModal(false)}><X className="w-6 h-6 text-gray-400" /></button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${getTicketStatusColor(selectedTicket.status)}`}>
+                    {getTicketStatusLabel(selectedTicket.status)}
+                  </span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                    {getTicketCategoryLabel(selectedTicket.category)}
+                  </span>
+                </div>
+                <h3 className="font-semibold text-gray-900 text-lg">{selectedTicket.subject}</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Von: {selectedTicket.user_email} &middot; {new Date(selectedTicket.created_at).toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-sm font-medium text-gray-700 mb-1">Nachricht:</p>
+                <p className="text-sm text-gray-600 whitespace-pre-wrap">{selectedTicket.message}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status ändern</label>
+                <select
+                  value={ticketStatus}
+                  onChange={e => setTicketStatus(e.target.value)}
+                  className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  <option value="open">Offen</option>
+                  <option value="in_progress">In Bearbeitung</option>
+                  <option value="resolved">Beantwortet</option>
+                  <option value="closed">Geschlossen</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Antwort an User</label>
+                <textarea
+                  value={ticketReply}
+                  onChange={e => setTicketReply(e.target.value)}
+                  placeholder="Antwort eingeben..."
+                  rows={4}
+                  className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={handleTicketSave}
+                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Save className="w-4 h-4" /> Speichern
+                </button>
+                <button
+                  onClick={() => { handleTicketDelete(selectedTicket.id); setShowTicketDetailModal(false); }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" /> Löschen
+                </button>
+                <button
+                  onClick={() => setShowTicketDetailModal(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Schliessen
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

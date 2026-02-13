@@ -549,23 +549,81 @@ CREATE INDEX IF NOT EXISTS idx_policy_shares_user ON policy_shares(user_id);
 -- RLS
 ALTER TABLE policy_shares ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can create their own shares" ON policy_shares;
 CREATE POLICY "Users can create their own shares"
   ON policy_shares FOR INSERT
   TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Anyone can view non-expired shares" ON policy_shares;
 CREATE POLICY "Anyone can view non-expired shares"
   ON policy_shares FOR SELECT
   TO anon, authenticated
   USING (expires_at > NOW());
 
+DROP POLICY IF EXISTS "Anyone can update view_count on non-expired shares" ON policy_shares;
 CREATE POLICY "Anyone can update view_count on non-expired shares"
   ON policy_shares FOR UPDATE
   TO anon, authenticated
   USING (expires_at > NOW())
   WITH CHECK (expires_at > NOW());
 
+DROP POLICY IF EXISTS "Users can delete their own shares" ON policy_shares;
 CREATE POLICY "Users can delete their own shares"
   ON policy_shares FOR DELETE
   TO authenticated
   USING (auth.uid() = user_id);
+
+-- =====================================================
+-- SUPPORT TICKETS TABLE - Integriertes Ticketsystem
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS support_tickets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_email TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  message TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'general',
+  status TEXT NOT NULL DEFAULT 'open',
+  admin_reply TEXT,
+  replied_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_support_tickets_user ON support_tickets(user_id);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status);
+
+ALTER TABLE support_tickets ENABLE ROW LEVEL SECURITY;
+
+-- User können eigene Tickets erstellen
+DROP POLICY IF EXISTS "Users can create own tickets" ON support_tickets;
+CREATE POLICY "Users can create own tickets"
+  ON support_tickets FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+-- User können eigene Tickets lesen
+DROP POLICY IF EXISTS "Users can view own tickets" ON support_tickets;
+CREATE POLICY "Users can view own tickets"
+  ON support_tickets FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+-- Admins können alle Tickets lesen und verwalten
+DROP POLICY IF EXISTS "Admins can manage all tickets" ON support_tickets;
+CREATE POLICY "Admins can manage all tickets"
+  ON support_tickets FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM admins WHERE admins.id = auth.uid()
+    )
+  );
+
+-- Trigger für updated_at
+DROP TRIGGER IF EXISTS update_support_tickets_updated_at ON support_tickets;
+CREATE TRIGGER update_support_tickets_updated_at
+  BEFORE UPDATE ON support_tickets
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();

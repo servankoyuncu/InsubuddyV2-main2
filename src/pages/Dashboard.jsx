@@ -1,6 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Users, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check, Shield, ExternalLink, Star, Info, Sparkles, Crown, Heart, Car, Building, Baby, Briefcase, ChevronDown } from 'lucide-react';
+import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Users, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check, Shield, ExternalLink, Star, Info, Sparkles, Crown, Heart, Car, Building, Baby, Briefcase, ChevronDown, MessageSquare, Send, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { addPolicy, getUserPolicies, deletePolicy } from '../services/policyservice';
 import { getNotificationSettings, checkExpiringPolicies } from '../services/notificationService';
@@ -11,6 +11,7 @@ import { supabase } from '../supabase';
 import Onboarding from '../components/Onboarding';
 import AdvisorCard from '../components/AdvisorCard';
 import { checkPremiumStatus, PREMIUM_FEATURES } from '../services/premiumService';
+import { createTicket, getUserTickets } from '../services/ticketService';
 import { getFeaturedAdvisor, getActiveAdvisors } from '../services/advisorService';
 
 // Lazy Loading für schwere Komponenten
@@ -197,7 +198,7 @@ const LIFE_EVENTS = [
     ]
   },
   {
-    id: 'auto', label: 'Auto kaufen', icon: Car,
+    id: 'auto', label: 'Auto', icon: Car,
     tips: [
       { text: 'Autoversicherung (Haftpflicht + Kasko) abschliessen', relatedType: 'Auto' },
       { text: 'Verkehrsrechtsschutz prüfen', relatedType: 'Rechtsschutz' },
@@ -223,7 +224,7 @@ const LIFE_EVENTS = [
     ]
   },
   {
-    id: 'pension', label: 'Pensionierung', icon: Clock,
+    id: 'pension', label: 'Pension', icon: Clock,
     tips: [
       { text: 'Vorsorge: 2. und 3. Säule prüfen', relatedType: null },
       { text: 'Krankenkasse: Franchise und Modell optimieren', relatedType: 'Krankenkasse' },
@@ -232,7 +233,7 @@ const LIFE_EVENTS = [
     ]
   },
   {
-    id: 'selbstaendig', label: 'Selbständigkeit', icon: Briefcase,
+    id: 'selbstaendig', label: 'Selbständig', icon: Briefcase,
     tips: [
       { text: 'Unfallversicherung selbst abschliessen (UVG-Pflicht entfällt)', relatedType: null },
       { text: 'Berufshaftpflicht prüfen', relatedType: 'Haftpflicht' },
@@ -317,6 +318,10 @@ function Dashboard() {
   // Premium State
   const [isPremium, setIsPremium] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [tickets, setTickets] = useState([]);
+  const [showTicketModal, setShowTicketModal] = useState(false);
+  const [ticketForm, setTicketForm] = useState({ subject: '', message: '', category: 'general' });
+  const [ticketSubmitting, setTicketSubmitting] = useState(false);
 
   // Advisor State
   const [featuredAdvisor, setFeaturedAdvisor] = useState(null);
@@ -468,7 +473,50 @@ function Dashboard() {
     }
   }, []);
 
-  // 7. Automatische Benachrichtigungen generieren
+  // 7. Tickets laden
+  const loadTickets = async () => {
+    if (!currentUser?.id) return;
+    const data = await getUserTickets(currentUser.id);
+    setTickets(data);
+  };
+
+  useEffect(() => {
+    loadTickets();
+  }, [currentUser]);
+
+  const handleTicketSubmit = async (e) => {
+    e.preventDefault();
+    if (!ticketForm.subject || !ticketForm.message) return;
+    setTicketSubmitting(true);
+    try {
+      await createTicket(currentUser.id, currentUser.email, ticketForm);
+      setTicketForm({ subject: '', message: '', category: 'general' });
+      setShowTicketModal(false);
+      await loadTickets();
+    } catch (error) {
+      console.error('Fehler beim Erstellen des Tickets:', error);
+      alert('Fehler beim Erstellen des Tickets');
+    } finally {
+      setTicketSubmitting(false);
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    const labels = { open: 'Offen', in_progress: 'In Bearbeitung', resolved: 'Beantwortet', closed: 'Geschlossen' };
+    return labels[status] || status;
+  };
+
+  const getStatusColor = (status) => {
+    const colors = { open: 'bg-yellow-100 text-yellow-800', in_progress: 'bg-blue-100 text-blue-800', resolved: 'bg-green-100 text-green-800', closed: 'bg-gray-100 text-gray-800' };
+    return colors[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getCategoryLabel = (cat) => {
+    const labels = { general: 'Allgemein', technical: 'Technisch', policy: 'Police', billing: 'Abrechnung' };
+    return labels[cat] || cat;
+  };
+
+  // 8. Automatische Benachrichtigungen generieren
   useEffect(() => {
     if (notificationSettings?.enabled && policies?.length > 0) {
       const newNotifications = checkExpiringPolicies(policies, notificationSettings.reminderDays);
@@ -1180,7 +1228,7 @@ function Dashboard() {
               </div>
 
               {/* Event Grid */}
-              <div className="grid grid-cols-4 gap-2 mb-2">
+              <div className="grid grid-cols-4 gap-1.5 mb-2">
                 {LIFE_EVENTS.map(event => {
                   const IconComp = event.icon;
                   const isSelected = selectedLifeEvent === event.id;
@@ -1188,7 +1236,7 @@ function Dashboard() {
                     <button
                       key={event.id}
                       onClick={() => setSelectedLifeEvent(isSelected ? null : event.id)}
-                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all text-center ${
+                      className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all text-center ${
                         isSelected
                           ? 'bg-purple-600 text-white shadow-lg scale-105'
                           : darkMode
@@ -1196,8 +1244,8 @@ function Dashboard() {
                             : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
                       }`}
                     >
-                      <IconComp className="w-5 h-5" />
-                      <span className="text-xs font-medium leading-tight">{event.label}</span>
+                      <IconComp className="w-4 h-4" />
+                      <span className="text-[10px] font-medium leading-tight">{event.label}</span>
                     </button>
                   );
                 })}
@@ -1724,6 +1772,72 @@ function Dashboard() {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Support-Tickets */}
+            <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <MessageSquare className="w-6 h-6 text-cyan-600" />
+                  <h3 className="text-lg font-semibold">Support</h3>
+                </div>
+                <button
+                  onClick={() => setShowTicketModal(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 text-white text-sm rounded-lg hover:bg-cyan-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Neues Ticket
+                </button>
+              </div>
+
+              {tickets.length === 0 ? (
+                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Noch keine Tickets erstellt. Bei Fragen oder Problemen können Sie hier ein Ticket eröffnen.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {tickets.map(ticket => (
+                    <div key={ticket.id} className={`${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-3`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-medium text-sm truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                            {ticket.subject}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(ticket.status)}`}>
+                              {getStatusLabel(ticket.status)}
+                            </span>
+                            <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                              {getCategoryLabel(ticket.category)}
+                            </span>
+                            <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                              {new Date(ticket.created_at).toLocaleDateString('de-CH')}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className={`text-sm mt-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                        {ticket.message}
+                      </p>
+                      {ticket.admin_reply && (
+                        <div className={`mt-3 p-3 rounded-lg border-l-4 border-green-500 ${darkMode ? 'bg-gray-600' : 'bg-green-50'}`}>
+                          <p className={`text-xs font-medium mb-1 ${darkMode ? 'text-green-400' : 'text-green-700'}`}>
+                            Antwort vom Support:
+                          </p>
+                          <p className={`text-sm ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                            {ticket.admin_reply}
+                          </p>
+                          {ticket.replied_at && (
+                            <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                              {new Date(ticket.replied_at).toLocaleDateString('de-CH')}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Admin-Bereich */}
@@ -2373,6 +2487,71 @@ function Dashboard() {
             <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" /></div>}>
               <PDFViewer pdfData={selectedPDF.file.data} />
             </Suspense>
+          </div>
+        </div>
+      )}
+      {/* Ticket erstellen Modal */}
+      {showTicketModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl max-w-md w-full shadow-2xl`}>
+            <div className={`p-5 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className="flex items-center justify-between">
+                <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Neues Support-Ticket
+                </h2>
+                <button onClick={() => setShowTicketModal(false)} className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <form onSubmit={handleTicketSubmit} className="p-5 space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Kategorie</label>
+                <select
+                  value={ticketForm.category}
+                  onChange={e => setTicketForm({...ticketForm, category: e.target.value})}
+                  className={`w-full px-3 py-2 rounded-lg border text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                >
+                  <option value="general">Allgemein</option>
+                  <option value="technical">Technisches Problem</option>
+                  <option value="policy">Police / Versicherung</option>
+                  <option value="billing">Abrechnung</option>
+                </select>
+              </div>
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Betreff</label>
+                <input
+                  value={ticketForm.subject}
+                  onChange={e => setTicketForm({...ticketForm, subject: e.target.value})}
+                  placeholder="Worum geht es?"
+                  required
+                  className={`w-full px-3 py-2 rounded-lg border text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' : 'bg-white border-gray-300 placeholder-gray-400'}`}
+                />
+              </div>
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Nachricht</label>
+                <textarea
+                  value={ticketForm.message}
+                  onChange={e => setTicketForm({...ticketForm, message: e.target.value})}
+                  placeholder="Beschreiben Sie Ihr Anliegen..."
+                  rows={4}
+                  required
+                  className={`w-full px-3 py-2 rounded-lg border text-sm resize-none ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' : 'bg-white border-gray-300 placeholder-gray-400'}`}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={ticketSubmitting || !ticketForm.subject || !ticketForm.message}
+                className="w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-cyan-600 hover:bg-cyan-700 text-white"
+              >
+                {ticketSubmitting ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
+                Ticket absenden
+              </button>
+            </form>
           </div>
         </div>
       )}
