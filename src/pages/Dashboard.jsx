@@ -1,6 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Users, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check, Shield, ExternalLink, Star, Info, Sparkles, Crown, Heart, Car, Building, Baby, Briefcase, ChevronDown, MessageSquare, Send, Loader2, Gift, Copy } from 'lucide-react';
+import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Users, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check, Shield, ExternalLink, Star, Info, Sparkles, Crown, Heart, Car, Building, Baby, Briefcase, ChevronDown, MessageSquare, Send, Loader2, Gift, Copy, FileX } from 'lucide-react';
+import CancellationModal from '../components/CancellationModal';
 import { useAuth } from '../context/AuthContext';
 import { addPolicy, getUserPolicies, deletePolicy } from '../services/policyservice';
 import { getNotificationSettings, checkExpiringPolicies } from '../services/notificationService';
@@ -323,6 +324,10 @@ function Dashboard() {
   const [showTicketModal, setShowTicketModal] = useState(false);
   const [ticketForm, setTicketForm] = useState({ subject: '', message: '', category: 'general' });
   const [ticketSubmitting, setTicketSubmitting] = useState(false);
+
+  // Cancellation State
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
+  const [selectedPolicyForCancellation, setSelectedPolicyForCancellation] = useState(null);
 
   // Referral State
   const [referralCode, setReferralCode] = useState('');
@@ -997,7 +1002,7 @@ function Dashboard() {
         </Suspense>
       )}
 
-      {/* Premium Modal */}
+      {/* Premium Modal - temporär deaktiviert, Code bleibt erhalten
       {showPremiumModal && (
         <Suspense fallback={null}>
           <PremiumModal
@@ -1013,8 +1018,22 @@ function Dashboard() {
           />
         </Suspense>
       )}
+      */}
 
-      <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b px-4 pt-14 pb-4`}>
+      {/* Kündigungsassistent Modal */}
+      {showCancellationModal && selectedPolicyForCancellation && (
+        <CancellationModal
+          policy={selectedPolicyForCancellation}
+          userEmail={currentUser?.email}
+          onClose={() => {
+            setShowCancellationModal(false);
+            setSelectedPolicyForCancellation(null);
+          }}
+          darkMode={darkMode}
+        />
+      )}
+
+      <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl border-b px-4 pt-14 pb-4`}>
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src="/icons/appstore.png" alt="InsuBuddy" className="w-9 h-9 rounded-lg" />
@@ -1045,21 +1064,21 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-4 pb-24">
+      <div className="max-w-4xl mx-auto p-4 pb-32">
         {activeTab === 'dashboard' && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fadeIn">
             <div className="grid grid-cols-3 gap-4">
-              <div className={`${darkMode ? 'bg-blue-900' : 'bg-blue-50'} p-4 rounded-lg`}>
+              <div className={`${darkMode ? 'bg-blue-900/80' : 'bg-blue-50/80'} backdrop-blur-xl p-4 rounded-2xl shadow-lg shadow-blue-500/10 transition-all duration-300`}>
                 <div className={`text-2xl font-bold ${darkMode ? 'text-blue-300' : 'text-blue-600'}`}>{policies.length}</div>
                 <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('active_policies')}</div>
               </div>
-              <div className={`${darkMode ? 'bg-green-900' : 'bg-green-50'} p-4 rounded-lg`}>
+              <div className={`${darkMode ? 'bg-green-900/80' : 'bg-green-50/80'} backdrop-blur-xl p-4 rounded-2xl shadow-lg shadow-green-500/10 transition-all duration-300`}>
                 <div className={`text-2xl font-bold ${darkMode ? 'text-green-300' : 'text-green-600'}`}>
                   {policies.filter(p => p.file).length}
                 </div>
                 <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Mit PDF</div>
               </div>
-              <div className={`${darkMode ? 'bg-orange-900' : 'bg-orange-50'} p-4 rounded-lg`}>
+              <div className={`${darkMode ? 'bg-orange-900/80' : 'bg-orange-50/80'} backdrop-blur-xl p-4 rounded-2xl shadow-lg shadow-orange-500/10 transition-all duration-300`}>
                 <div className={`text-2xl font-bold ${darkMode ? 'text-orange-300' : 'text-orange-600'}`}>
                   {policies.filter(p => getDaysUntilExpiry(p.expiryDate) <= 30 && getDaysUntilExpiry(p.expiryDate) >= 0).length}
                 </div>
@@ -1068,7 +1087,7 @@ function Dashboard() {
             </div>
 
             {policies.filter(p => getDaysUntilExpiry(p.expiryDate) <= 30 && getDaysUntilExpiry(p.expiryDate) >= 0).length > 0 && (
-              <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border transition-all duration-300`}>
                 <div className={`p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                   <h2 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>⚠️ Ablaufende Policen</h2>
                 </div>
@@ -1091,7 +1110,7 @@ function Dashboard() {
 
             {/* Quick Stats Kachel */}
             {policies.length > 0 && (
-              <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
+              <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-6 transition-all duration-300`}>
                 <h2 className={`font-semibold text-lg mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                   📊 Deine Versicherungen {new Date().getFullYear()}
                 </h2>
@@ -1124,7 +1143,7 @@ function Dashboard() {
 
             {/* Prämien-Vergleich mit Balken */}
             {getPremiumBreakdown().length > 0 && (
-              <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
+              <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-6 transition-all duration-300`}>
                 <h2 className={`font-semibold text-lg mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                   💳 Monatliche Prämien-Übersicht
                 </h2>
@@ -1184,7 +1203,7 @@ function Dashboard() {
               };
 
               return (
-                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
+                <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-6 transition-all duration-300`}>
                   <div className="flex items-center gap-3 mb-4">
                     <div className={`p-2 rounded-lg ${darkMode ? 'bg-blue-900' : 'bg-blue-100'}`}>
                       <Shield className={`w-6 h-6 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
@@ -1266,7 +1285,7 @@ function Dashboard() {
             })()}
 
             {/* Lebensereignis-Checker */}
-            <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
+            <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-6 transition-all duration-300`}>
               <div className="flex items-center gap-3 mb-4">
                 <div className={`p-2 rounded-lg ${darkMode ? 'bg-purple-900' : 'bg-purple-100'}`}>
                   <Sparkles className={`w-6 h-6 ${darkMode ? 'text-purple-400' : 'text-purple-600'}`} />
@@ -1354,7 +1373,7 @@ function Dashboard() {
 
             {/* Empfohlene Versicherungen */}
             {partnerInsurances.length > 0 && (
-              <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
+              <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-6 transition-all duration-300`}>
                 <h2 className={`font-semibold text-lg mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                   🎯 Empfohlene Versicherungen
                 </h2>
@@ -1435,8 +1454,8 @@ function Dashboard() {
         )}
 
         {activeTab === 'policies' && (
-          <div className="space-y-4">
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-lg">
+          <div className="space-y-4 animate-fadeIn">
+            <div className="bg-gradient-to-br from-blue-500 via-cyan-500 to-blue-600 text-white p-6 rounded-2xl shadow-xl shadow-blue-500/30">
               <h2 className="text-xl font-semibold mb-2">{t('policy_overview')}</h2>
               <div className="text-3xl font-bold">
                 CHF {policies.reduce((sum, p) => {
@@ -1450,13 +1469,7 @@ function Dashboard() {
 
             {/* Smart Import Button - Premium Feature */}
             <button
-              onClick={() => {
-                if (isPremium) {
-                  setShowPolicyUploader(true);
-                } else {
-                  setShowPremiumModal(true);
-                }
-              }}
+              onClick={() => setShowPolicyUploader(true)}
               className={`w-full py-3 rounded-lg font-medium flex items-center justify-center gap-2 mb-3 relative ${
                 darkMode
                   ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700'
@@ -1465,12 +1478,14 @@ function Dashboard() {
             >
               <Sparkles className="w-5 h-5" />
               Smart Import (PDF)
+              {/* PRO Badge deaktiviert - Premium temporär ausgesetzt
               {!isPremium && (
                 <span className="absolute -top-2 -right-2 bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                   <Crown className="w-3 h-3" />
                   PRO
                 </span>
               )}
+              */}
             </button>
 
             <button
@@ -1486,7 +1501,7 @@ function Dashboard() {
             </button>
 
             {policies.length === 0 ? (
-              <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-8 text-center`}>
+              <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-8 text-center`}>
                 <FileText className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
                 <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Noch keine Policen hinzugefügt</p>
               </div>
@@ -1494,7 +1509,7 @@ function Dashboard() {
               policies.map((p, i) => {
                 const expiryStatus = getExpiryStatus(p.expiryDate);
                 return (
-                  <div key={i} className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
+                  <div key={i} className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-4`}>
                     <div className="flex items-center justify-between mb-2">
                       <div className={`font-semibold text-lg ${darkMode ? 'text-white' : 'text-gray-900'}`}>{p.type}</div>
                       <div className="flex items-center gap-2">
@@ -1531,6 +1546,16 @@ function Dashboard() {
                             <FileText className="w-4 h-4" />
                           </button>
                         )}
+                        <button
+                          onClick={() => {
+                            setSelectedPolicyForCancellation(p);
+                            setShowCancellationModal(true);
+                          }}
+                          className={`p-2 rounded-lg ${darkMode ? 'text-orange-400 hover:bg-orange-900/20' : 'text-orange-500 hover:bg-orange-50'}`}
+                          title="Kündigen"
+                        >
+                          <FileX className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => handleDeletePolicy(p.id)}
                           className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
@@ -1613,8 +1638,8 @@ function Dashboard() {
         )}
 
         {activeTab === 'vault' && (
-          <div className="space-y-4">
-            <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-lg">
+          <div className="space-y-4 animate-fadeIn">
+            <div className="bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 text-white p-6 rounded-2xl shadow-xl shadow-purple-500/30">
               <h2 className="text-xl font-semibold mb-2">{t('digital_vault')}</h2>
               <div className="text-3xl font-bold">
                 CHF {calculateTotalValue(valuableItems).toLocaleString('de-CH')}
@@ -1631,7 +1656,7 @@ function Dashboard() {
             </button>
             
             {valuableItems.length === 0 ? (
-              <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-8 text-center`}>
+              <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-8 text-center`}>
                 <Camera className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
                 <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Noch keine Wertgegenstände hinzugefügt</p>
                 <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
@@ -1640,7 +1665,7 @@ function Dashboard() {
               </div>
             ) : (
               valuableItems.map((item) => (
-                <div key={item.id} className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
+                <div key={item.id} className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-4`}>
                   <div className="flex gap-4">
                     <div 
                       onClick={() => handleViewImage(item)}
@@ -1699,8 +1724,8 @@ function Dashboard() {
         )}
 
         {activeTab === 'advisors' && (
-          <div className="space-y-4">
-            <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
+          <div className="space-y-4 animate-fadeIn">
+            <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-6 transition-all duration-300`}>
               <h2 className={`text-xl font-bold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                 Empfohlene Berater
               </h2>
@@ -1736,8 +1761,8 @@ function Dashboard() {
         )}
 
         {activeTab === 'profile' && (
-          <div className="space-y-4">
-            <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white p-6 rounded-lg">
+          <div className="space-y-4 animate-fadeIn">
+            <div className="bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-600 text-white p-6 rounded-2xl shadow-xl shadow-indigo-500/30">
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
                   <User className="w-8 h-8 text-indigo-600" />
@@ -1750,7 +1775,7 @@ function Dashboard() {
             </div>
             
             {/* Benachrichtigungs-Einstellungen */}
-            <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
+            <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-4`}>
               <div className="flex items-center gap-3 mb-4">
                 <Bell className="w-6 h-6 text-indigo-600" />
                 <h3 className="text-lg font-semibold">Benachrichtigungen</h3>
@@ -1829,7 +1854,7 @@ function Dashboard() {
             </div>
 
             {/* Support-Tickets */}
-            <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
+            <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-4`}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <MessageSquare className="w-6 h-6 text-cyan-600" />
@@ -1895,8 +1920,8 @@ function Dashboard() {
             </div>
 
             {/* Freunde einladen */}
-            <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border overflow-hidden`}>
-              <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-4 text-white">
+            <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border overflow-hidden`}>
+              <div className="bg-gradient-to-br from-green-500 via-emerald-500 to-emerald-600 p-4 text-white shadow-lg shadow-green-500/20">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                     <Gift className="w-5 h-5" />
@@ -1975,7 +2000,7 @@ function Dashboard() {
 
             {/* Admin-Bereich */}
             {isAdmin && (
-              <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
+              <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-4`}>
                 <div className="flex items-center gap-3 mb-3">
                   <Shield className="w-6 h-6 text-purple-600" />
                   <h3 className="text-lg font-semibold">Admin-Bereich</h3>
@@ -1993,7 +2018,7 @@ function Dashboard() {
               </div>
             )}
             
-            <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
+            <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-4`}>
               <button
                 onClick={() => setShowBiometricSetup(true)}
                 className="w-full text-left flex items-center justify-between mb-4"
@@ -2022,7 +2047,7 @@ function Dashboard() {
         )}
       </div>
 
-      <div className={`fixed bottom-0 left-0 right-0 z-50 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-t px-4 py-2`}>
+      <div className={`fixed bottom-4 left-4 right-4 z-50 ${darkMode ? 'bg-gray-800/90 border-gray-700/50' : 'bg-white/90 border-gray-200/50'} backdrop-blur-xl border rounded-3xl shadow-2xl shadow-blue-500/20 px-4 py-3 animate-slideInFromBottom`}>
         <div className="max-w-4xl mx-auto flex justify-around">
           <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center gap-1 py-2 px-4 ${activeTab === 'dashboard' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             <Home className="w-6 h-6" />
@@ -2051,7 +2076,7 @@ function Dashboard() {
       {/* Ich füge nur das Add Policy Modal hinzu mit den Info-Icons */}
 
       {showAddPolicy && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto`}>
             <div className="flex items-center justify-between mb-4">
               <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -2256,7 +2281,7 @@ function Dashboard() {
 
       {/* Biometric Setup Modal */}
       {showBiometricSetup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg max-w-md w-full p-6`}>
             <div className="text-center mb-6">
               <div className={`w-20 h-20 mx-auto mb-4 rounded-full ${darkMode ? 'bg-gray-700' : 'bg-blue-100'} flex items-center justify-center`}>
@@ -2277,7 +2302,7 @@ function Dashboard() {
 
       {/* Language Menu Modal */}
       {showLanguageMenu && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg max-w-sm w-full p-6`}>
             <h2 className={`text-xl font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('language')}</h2>
             <div className="space-y-2 mb-6">
@@ -2304,7 +2329,7 @@ function Dashboard() {
 
       {/* Notifications Modal */}
       {showNotifications && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col shadow-2xl`}>
             <div className={`p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-between`}>
               <div>
@@ -2385,7 +2410,7 @@ function Dashboard() {
 
       {/* Export Menu Modal */}
       {showExportMenu && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center p-0 z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center p-0 z-50">
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-t-2xl w-full max-w-md p-6 max-h-[70vh] overflow-y-auto`}>
             <div className="flex items-center justify-between mb-4">
               <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Policen PDFs exportieren</h2>
@@ -2447,7 +2472,7 @@ function Dashboard() {
 
       {/* Add Item Modal */}
       {showAddItem && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto`}>
             <div className="flex items-center justify-between mb-4">
               <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -2625,7 +2650,7 @@ function Dashboard() {
       )}
       {/* Ticket erstellen Modal */}
       {showTicketModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl max-w-md w-full shadow-2xl`}>
             <div className={`p-5 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
               <div className="flex items-center justify-between">

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, Users } from 'lucide-react';
+import { Eye, EyeOff, Users, Mail, CheckCircle } from 'lucide-react';
 import { handleSupabaseError } from '../supabase';
 import { trackReferralSignup } from '../services/referralService';
 
@@ -13,6 +13,7 @@ export default function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -39,13 +40,53 @@ export default function Register() {
         await trackReferralSignup(refCode, data.user.id, email);
       }
 
-      navigate('/');
+      setEmailSent(true);
     } catch (error) {
       console.error('Registration error:', error);
       setError(handleSupabaseError(error));
     } finally {
       setLoading(false);
     }
+  }
+
+  if (emailSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+              <Mail className="w-10 h-10 text-green-600 dark:text-green-400" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Bestätigungsmail gesendet
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            Wir haben eine Verifizierungsmail an <span className="font-semibold text-gray-900 dark:text-white">{email}</span> gesendet.
+            Bitte klicke auf den Link in der E-Mail, um dein Konto zu aktivieren.
+          </p>
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              Keine E-Mail erhalten? Prüfe deinen Spam-Ordner oder versuche es erneut.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3">
+            <Link
+              to="/login"
+              className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Zur Anmeldung
+            </Link>
+            <button
+              onClick={() => { setEmailSent(false); setEmail(''); setPassword(''); setConfirmPassword(''); }}
+              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            >
+              Mit anderer E-Mail registrieren
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

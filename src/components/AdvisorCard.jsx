@@ -77,7 +77,7 @@ const AdvisorCard = ({ advisor, darkMode = false, compact = false, collapsible =
   // Kompakte Version für Sidebar/Widget
   if (compact) {
     return (
-      <div className={`rounded-xl p-4 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border`}>
+      <div className={`rounded-2xl p-4 ${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl border shadow-lg shadow-blue-500/10 transition-all duration-300`}>
         <div className="flex items-center gap-3 mb-3">
           {advisor.photo ? (
             <img src={advisor.photo} alt={advisor.name} className="w-12 h-12 rounded-full object-cover" />
@@ -191,7 +191,7 @@ const AdvisorCard = ({ advisor, darkMode = false, compact = false, collapsible =
   if (collapsible) {
     return (
       <>
-        <div className={`rounded-2xl overflow-hidden ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border shadow-sm`}>
+        <div className={`rounded-2xl overflow-hidden ${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl border shadow-lg shadow-blue-500/10 transition-all duration-300`}>
           <CollapsibleHeader />
 
           {expanded && (
@@ -251,7 +251,7 @@ const AdvisorCard = ({ advisor, darkMode = false, compact = false, collapsible =
                   {(advisor.whatsapp || advisor.phone) && (
                     <button
                       onClick={handleWhatsApp}
-                      className="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium flex items-center justify-center gap-2 transition-colors"
+                      className="w-full py-3 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-medium flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/30 hover:-translate-y-0.5"
                     >
                       <MessageCircle className="w-5 h-5" />
                       Via WhatsApp kontaktieren
@@ -402,9 +402,9 @@ const AdvisorCard = ({ advisor, darkMode = false, compact = false, collapsible =
   // Vollständige Karte (nicht collapsible)
   return (
     <>
-      <div className={`rounded-2xl overflow-hidden ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border shadow-sm`}>
+      <div className={`rounded-2xl overflow-hidden ${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl border shadow-lg shadow-blue-500/10 transition-all duration-300`}>
         {/* Header mit Gradient */}
-        <div className="relative bg-gradient-to-br from-blue-500 to-blue-700 p-6 text-white">
+        <div className="relative bg-gradient-to-br from-blue-500 via-cyan-400 to-blue-700 p-6 text-white shadow-xl shadow-blue-500/30">
           {advisor.featured && (
             <div className="absolute top-4 right-4 bg-amber-400 text-amber-900 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
               <Star className="w-3 h-3 fill-current" />
@@ -541,7 +541,7 @@ const AdvisorCard = ({ advisor, darkMode = false, compact = false, collapsible =
             {(advisor.whatsapp || advisor.phone) && (
               <button
                 onClick={handleWhatsApp}
-                className="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium flex items-center justify-center gap-2 transition-colors"
+                className="w-full py-3 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-medium flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/30 hover:-translate-y-0.5"
               >
                 <MessageCircle className="w-5 h-5" />
                 Via WhatsApp kontaktieren
