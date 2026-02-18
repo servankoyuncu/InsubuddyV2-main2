@@ -2047,27 +2047,27 @@ function Dashboard() {
         )}
       </div>
 
-      <div className={`fixed bottom-4 left-4 right-4 z-50 ${darkMode ? 'bg-gray-800/90 border-gray-700/50' : 'bg-white/90 border-gray-200/50'} backdrop-blur-xl border rounded-3xl shadow-2xl shadow-blue-500/20 px-4 py-3 animate-slideInFromBottom`}>
+      <div className={`fixed bottom-4 left-2 right-2 z-50 ${darkMode ? 'bg-gray-800/90 border-gray-700/50' : 'bg-white/90 border-gray-200/50'} backdrop-blur-xl border rounded-3xl shadow-2xl shadow-blue-500/20 px-2 py-2 animate-slideInFromBottom`}>
         <div className="max-w-4xl mx-auto flex justify-around">
-          <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center gap-1 py-2 px-4 ${activeTab === 'dashboard' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            <Home className="w-6 h-6" />
-            <span className="text-xs">{t('tab_overview')}</span>
+          <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center gap-0.5 py-1.5 px-1 min-w-0 flex-1 ${activeTab === 'dashboard' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            <Home className="w-5 h-5" />
+            <span className="text-[10px] truncate">{t('tab_overview')}</span>
           </button>
-          <button onClick={() => setActiveTab('policies')} className={`flex flex-col items-center gap-1 py-2 px-4 ${activeTab === 'policies' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            <FileText className="w-6 h-6" />
-            <span className="text-xs">{t('tab_policies')}</span>
+          <button onClick={() => setActiveTab('policies')} className={`flex flex-col items-center gap-0.5 py-1.5 px-1 min-w-0 flex-1 ${activeTab === 'policies' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            <FileText className="w-5 h-5" />
+            <span className="text-[10px] truncate">{t('tab_policies')}</span>
           </button>
-          <button onClick={() => setActiveTab('vault')} className={`flex flex-col items-center gap-1 py-2 px-4 ${activeTab === 'vault' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            <Camera className="w-6 h-6" />
-            <span className="text-xs">{t('tab_vault')}</span>
+          <button onClick={() => setActiveTab('vault')} className={`flex flex-col items-center gap-0.5 py-1.5 px-1 min-w-0 flex-1 ${activeTab === 'vault' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            <Camera className="w-5 h-5" />
+            <span className="text-[10px] truncate">{t('tab_vault')}</span>
           </button>
-          <button onClick={() => setActiveTab('finances')} className={`flex flex-col items-center gap-1 py-2 px-3 ${activeTab === 'finances' ? 'text-green-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            <TrendingUp className="w-6 h-6" />
-            <span className="text-xs">{t('tab_finances')}</span>
+          <button onClick={() => setActiveTab('finances')} className={`flex flex-col items-center gap-0.5 py-1.5 px-1 min-w-0 flex-1 ${activeTab === 'finances' ? 'text-green-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            <TrendingUp className="w-5 h-5" />
+            <span className="text-[10px] truncate">{t('tab_finances')}</span>
           </button>
-          <button onClick={() => setActiveTab('advisors')} className={`flex flex-col items-center gap-1 py-2 px-3 ${activeTab === 'advisors' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            <Users className="w-6 h-6" />
-            <span className="text-xs">{t('tab_advisors')}</span>
+          <button onClick={() => setActiveTab('advisors')} className={`flex flex-col items-center gap-0.5 py-1.5 px-1 min-w-0 flex-1 ${activeTab === 'advisors' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            <Users className="w-5 h-5" />
+            <span className="text-[10px] truncate">{t('tab_advisors')}</span>
           </button>
         </div>
       </div>
