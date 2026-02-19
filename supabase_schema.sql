@@ -677,7 +677,7 @@ CREATE POLICY "Anyone can update referral on signup"
   ON referrals FOR UPDATE
   USING (true);
 
--- Admins können alle Referrals sehen und verwalten
+-- Admins koennen alle Referrals sehen und verwalten
 DROP POLICY IF EXISTS "Admins can manage all referrals" ON referrals;
 CREATE POLICY "Admins can manage all referrals"
   ON referrals FOR ALL
@@ -685,4 +685,51 @@ CREATE POLICY "Admins can manage all referrals"
     EXISTS (
       SELECT 1 FROM admins WHERE admins.id = auth.uid()
     )
+  );
+
+-- ============================================================
+-- PUSH NOTIFICATIONS
+-- ============================================================
+
+-- Device Push Tokens (iOS APNs Tokens pro User)
+CREATE TABLE IF NOT EXISTS device_push_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  token TEXT NOT NULL,
+  platform TEXT NOT NULL DEFAULT 'ios' CHECK (platform IN ('ios', 'android')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, token)
+);
+
+ALTER TABLE device_push_tokens ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "User kann eigene Tokens verwalten" ON device_push_tokens;
+CREATE POLICY "User kann eigene Tokens verwalten"
+  ON device_push_tokens FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Service Role liest alle Tokens" ON device_push_tokens;
+CREATE POLICY "Service Role liest alle Tokens"
+  ON device_push_tokens FOR SELECT
+  USING (true);
+
+-- Log fuer gesendete Push-Notifications (fuer Admin-History)
+CREATE TABLE IF NOT EXISTS push_notification_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  sent_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  recipient_count INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE push_notification_log ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins koennen Push Log verwalten" ON push_notification_log;
+CREATE POLICY "Admins koennen Push Log verwalten"
+  ON push_notification_log FOR ALL
+  USING (
+    EXISTS (SELECT 1 FROM admins WHERE admins.id = auth.uid())
   );

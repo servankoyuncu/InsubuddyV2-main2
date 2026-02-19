@@ -7,7 +7,8 @@ import {
   Plus, Edit2, Trash2, Eye, EyeOff, Shield,
   Image as ImageIcon, Save, X, Bell, AlertCircle, CheckCircle, Info as InfoIcon,
   Users, FileText, Briefcase, UserCheck, Phone, Mail, MessageCircle, Star, Globe,
-  MapPin, BadgeCheck, Home, Car, Building, Heart, Stethoscope, PiggyBank, Gift
+  MapPin, BadgeCheck, Home, Car, Building, Heart, Stethoscope, PiggyBank, Gift,
+  Send, Smartphone
 } from 'lucide-react';
 import {
   getAllAdvisors,
@@ -55,6 +56,13 @@ function AdminDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [editingNotification, setEditingNotification] = useState(null);
+
+  // Push Notification State
+  const [pushTitle, setPushTitle] = useState('');
+  const [pushMessage, setPushMessage] = useState('');
+  const [pushSending, setPushSending] = useState(false);
+  const [pushResult, setPushResult] = useState(null); // { sent, failed } oder { error }
+  const [pushLog, setPushLog] = useState([]);
   const [notificationForm, setNotificationForm] = useState({
     title: '',
     message: '',
@@ -139,6 +147,14 @@ function AdminDashboard() {
       const ticketsData = await getAllTickets();
       setTickets(ticketsData);
 
+      // 6. Push Notification Log laden
+      const { data: pushLogData } = await supabase
+        .from('push_notification_log')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (pushLogData) setPushLog(pushLogData);
+
     } catch (err) {
       console.error('Fehler beim Laden der Daten:', err);
     } finally {
@@ -155,6 +171,35 @@ function AdminDashboard() {
   useEffect(() => {
     fetchData();
   }, [isAdmin]);
+
+  const handleSendPush = async () => {
+    if (!pushTitle.trim() || !pushMessage.trim()) return;
+    setPushSending(true);
+    setPushResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-push-notification', {
+        body: { title: pushTitle.trim(), message: pushMessage.trim() },
+      });
+      if (error) {
+        setPushResult({ error: error.message });
+      } else {
+        setPushResult({ sent: data.sent, failed: data.failed, total: data.total });
+        setPushTitle('');
+        setPushMessage('');
+        // Log aktualisieren
+        const { data: logData } = await supabase
+          .from('push_notification_log')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        if (logData) setPushLog(logData);
+      }
+    } catch (err) {
+      setPushResult({ error: String(err) });
+    } finally {
+      setPushSending(false);
+    }
+  };
 
   // --- HANDLER (handleSubmit, toggleStatus, etc. bleiben wie in deinem Code) ---
   const handleSubmit = async (e) => {
@@ -481,6 +526,10 @@ function AdminDashboard() {
                   {tickets.filter(t => t.status === 'open').length}
                 </span>
               )}
+            </button>
+            <button onClick={() => setActiveTab('push')} className={`pb-3 px-2 font-medium text-sm transition-colors flex items-center gap-1.5 ${activeTab === 'push' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
+              <Smartphone className="w-4 h-4" />
+              Push senden
             </button>
           </div>
         </div>
@@ -1179,6 +1228,111 @@ function AdminDashboard() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* PUSH NOTIFICATIONS TAB                                        */}
+      {/* ============================================================ */}
+      {activeTab === 'push' && (
+        <div className="max-w-2xl">
+          {/* Senden-Formular */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="p-2 bg-blue-50 rounded-lg">
+                <Smartphone className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Push-Notification senden</h3>
+                <p className="text-xs text-gray-500">Wird an alle iOS-Nutzer mit aktiver Berechtigung gesendet</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Titel <span className="text-gray-400 font-normal">({pushTitle.length}/60)</span>
+                </label>
+                <input
+                  type="text"
+                  value={pushTitle}
+                  onChange={(e) => setPushTitle(e.target.value.slice(0, 60))}
+                  placeholder="z.B. Wichtige Info zu deiner Police"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nachricht <span className="text-gray-400 font-normal">({pushMessage.length}/200)</span>
+                </label>
+                <textarea
+                  value={pushMessage}
+                  onChange={(e) => setPushMessage(e.target.value.slice(0, 200))}
+                  placeholder="z.B. Schau dir jetzt deine Policenübersicht an..."
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                />
+              </div>
+
+              {pushResult && (
+                <div className={`rounded-lg px-4 py-3 text-sm ${pushResult.error ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}`}>
+                  {pushResult.error
+                    ? `Fehler: ${pushResult.error}`
+                    : `Gesendet: ${pushResult.sent} ✓  Fehlgeschlagen: ${pushResult.failed}  (Total Geräte: ${pushResult.total})`
+                  }
+                </div>
+              )}
+
+              <button
+                onClick={handleSendPush}
+                disabled={pushSending || !pushTitle.trim() || !pushMessage.trim()}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                {pushSending ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    Wird gesendet...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    An alle Nutzer senden
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Verlauf */}
+          {pushLog.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Zuletzt gesendet</h3>
+              <div className="space-y-3">
+                {pushLog.map((log) => (
+                  <div key={log.id} className="flex items-start justify-between border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{log.title}</p>
+                      <p className="text-xs text-gray-500 truncate">{log.message}</p>
+                    </div>
+                    <div className="text-right ml-4 shrink-0">
+                      <p className="text-xs font-medium text-green-600">{log.recipient_count} gesendet</p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(log.created_at).toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {pushLog.length === 0 && (
+            <div className="text-center py-12 text-gray-400">
+              <Bell className="w-10 h-10 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">Noch keine Push-Notifications gesendet</p>
+            </div>
+          )}
         </div>
       )}
     </div>
