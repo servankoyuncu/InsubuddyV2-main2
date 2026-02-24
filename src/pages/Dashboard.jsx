@@ -1586,42 +1586,31 @@ function Dashboard() {
                             Deckungen
                           </span>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                           {p.coverage.map((cov, idx) => {
                             const description = getCoverageDescription(p.type, cov);
+                            const infoKey = `${p.id}-${idx}`;
+                            const isOpen = showCoverageInfo === infoKey;
                             return (
-                              <div key={idx} className="flex items-start gap-2">
-                                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                                <span className={`text-sm flex-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                                  {cov}
-                                </span>
-                                {description && (
-                                  <div className="relative">
+                              <div key={idx}>
+                                <div className="flex items-start gap-2 py-1">
+                                  <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                                  <span className={`text-sm flex-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                    {cov}
+                                  </span>
+                                  {description && (
                                     <button
-                                      onClick={() => setShowCoverageInfo(showCoverageInfo === `${p.id}-${idx}` ? null : `${p.id}-${idx}`)}
-                                      className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                                      onClick={() => setShowCoverageInfo(isOpen ? null : infoKey)}
+                                      className={`p-1 rounded-full flex-shrink-0 transition-colors ${isOpen ? 'bg-blue-100 text-blue-600' : darkMode ? 'text-blue-400 hover:bg-gray-700' : 'text-blue-500 hover:bg-blue-50'}`}
                                       title="Info anzeigen"
                                     >
-                                      <Info className="w-4 h-4 text-blue-500" />
+                                      <Info className="w-4 h-4" />
                                     </button>
-                                    {showCoverageInfo === `${p.id}-${idx}` && (
-                                      <div className={`absolute right-0 z-10 mt-2 w-72 p-3 rounded-lg shadow-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'}`}>
-                                        <div className="flex items-start justify-between mb-2">
-                                          <span className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                                            {cov}
-                                          </span>
-                                          <button
-                                            onClick={() => setShowCoverageInfo(null)}
-                                            className={`p-0.5 rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-100'}`}
-                                          >
-                                            <X className="w-3 h-3" />
-                                          </button>
-                                        </div>
-                                        <p className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                                          {description}
-                                        </p>
-                                      </div>
-                                    )}
+                                  )}
+                                </div>
+                                {isOpen && description && (
+                                  <div className={`ml-6 mb-1 px-3 py-2 rounded-xl text-xs ${darkMode ? 'bg-blue-900/30 text-blue-200' : 'bg-blue-50 text-blue-800'}`}>
+                                    {description}
                                   </div>
                                 )}
                               </div>

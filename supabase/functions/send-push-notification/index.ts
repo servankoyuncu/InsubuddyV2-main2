@@ -186,14 +186,17 @@ Deno.serve(async (req: Request) => {
     }
 
     // Log-Eintrag erstellen
-    // sent_by aus Authorization Header auslesen
-    const authHeader = req.headers.get('authorization') || '';
-    const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    let sentBy = null;
+    try {
+      const authHeader = req.headers.get('authorization') || '';
+      const { data } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+      sentBy = data?.user?.id || null;
+    } catch (_) { /* kein User im Header - kein Problem */ }
 
     await supabase.from('push_notification_log').insert({
       title,
       message,
-      sent_by: user?.id || null,
+      sent_by: sentBy,
       recipient_count: sent,
     });
 
