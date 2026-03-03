@@ -47,7 +47,8 @@ export const addPolicy = async (userId, policyData, file = null) => {
       coverage: policyData.coverage || [],
       status: 'ok',
       file_name: file ? file.name : null,
-      file_data: fileUrl // Hier speichern wir jetzt die URL!
+      file_data: fileUrl, // Hier speichern wir jetzt die URL!
+      extracted_text: policyData.extractedText || null
     };
 
     const { data, error } = await supabase

@@ -11,6 +11,7 @@ const PolicyUploader = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [extractedData, setExtractedData] = useState(null);
+  const [extractedRawText, setExtractedRawText] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [error, setError] = useState(null);
   const [editMode, setEditMode] = useState(false);
@@ -73,6 +74,7 @@ const PolicyUploader = ({
       if (result.success && result.data) {
         // Auch bei niedrigem Confidence weiter machen, aber Edit-Mode aktivieren
         setExtractedData(result.data);
+        setExtractedRawText(result.rawText || '');
         setEditedData({
           name: result.data.name || '',
           company: result.data.company || '',
@@ -137,7 +139,8 @@ const PolicyUploader = ({
       expiryDate: editedData.expiryDate,
       coverage: coverageTemplates[editedData.type]
         ? coverageTemplates[editedData.type].map(c => c.name)
-        : []
+        : [],
+      extractedText: extractedRawText
     };
 
     onPolicyExtracted(policyData, selectedFile);

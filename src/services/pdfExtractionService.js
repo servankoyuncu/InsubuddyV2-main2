@@ -218,7 +218,7 @@ export const processPolicyPDF = async (file) => {
     return {
       success: true,
       data: policyData,
-      rawText: text.substring(0, 1000) // Ersten 1000 Zeichen für Debug
+      rawText: text // Vollständiger Text für KI-Chat
     };
   } catch (error) {
     console.error('Fehler beim Verarbeiten der PDF:', error);

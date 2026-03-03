@@ -21,6 +21,7 @@ const FinancialDashboard = lazy(() => import('../components/FinancialDashboard')
 const PolicyUploader = lazy(() => import('../components/PolicyUploader'));
 const PremiumModal = lazy(() => import('../components/PremiumModal'));
 const PDFViewer = lazy(() => import('../components/PDFViewer'));
+const PolicyChat = lazy(() => import('../components/PolicyChat'));
 
 // Deckungen-Templates mit detaillierten Beschreibungen
 const coverageTemplates = {
@@ -259,6 +260,7 @@ function Dashboard() {
   const [showBiometricSetup, setShowBiometricSetup] = useState(false);
   const [showAddPolicy, setShowAddPolicy] = useState(false);
   const [showPDFViewer, setShowPDFViewer] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const [selectedPDF, setSelectedPDF] = useState(null);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showImageViewer, setShowImageViewer] = useState(false);
@@ -594,6 +596,7 @@ function Dashboard() {
       tab_vault: 'Tresor',
       tab_finances: 'Finanzen',
       tab_advisors: 'Berater',
+      tab_chat: 'KI-Chat',
       tab_profile: 'Profil',
       active_policies: 'Aktive Policen',
       secured_values: 'Gesicherte Werte',
@@ -654,6 +657,7 @@ function Dashboard() {
       tab_vault: 'Vault',
       tab_finances: 'Finances',
       tab_advisors: 'Advisors',
+      tab_chat: 'AI Chat',
       tab_profile: 'Profile',
       active_policies: 'Active Policies',
       secured_values: 'Secured Values',
@@ -2035,6 +2039,43 @@ function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* KI-Chat Floating Button */}
+      <button
+        onClick={() => setShowChat(true)}
+        className="fixed bottom-24 right-4 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl shadow-indigo-500/40 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform"
+      >
+        <MessageSquare className="w-6 h-6 text-white" />
+      </button>
+
+      {/* KI-Chat Modal */}
+      {showChat && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end">
+          <div className={`w-full rounded-t-3xl ${darkMode ? 'bg-gray-900' : 'bg-gray-50'} flex flex-col`} style={{ height: '90vh' }}>
+            {/* Modal Header */}
+            <div className={`flex items-center justify-between px-5 py-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                  <MessageSquare className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h2 className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>KI-Versicherungsassistent</h2>
+                  <p className={`text-xs ${darkMode ? 'text-indigo-400' : 'text-indigo-500'}`}>Powered by Claude AI</p>
+                </div>
+              </div>
+              <button onClick={() => setShowChat(false)} className={`p-2 rounded-xl ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {/* Chat Content */}
+            <div className="flex-1 overflow-y-auto px-4 pt-4">
+              <Suspense fallback={<div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" /></div>}>
+                <PolicyChat darkMode={darkMode} policies={policies} />
+              </Suspense>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className={`fixed bottom-4 left-2 right-2 z-50 ${darkMode ? 'bg-gray-800/90 border-gray-700/50' : 'bg-white/90 border-gray-200/50'} backdrop-blur-xl border rounded-3xl shadow-2xl shadow-blue-500/20 px-2 py-2 animate-slideInFromBottom`}>
         <div className="max-w-4xl mx-auto flex justify-around">
