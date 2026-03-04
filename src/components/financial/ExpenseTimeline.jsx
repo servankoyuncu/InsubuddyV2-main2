@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { formatCurrency } from '../../services/financialService';
 
-const ExpenseTimeline = ({ history, darkMode, translations }) => {
+const ExpenseTimeline = ({ history, darkMode, translations, currencySymbol = 'CHF' }) => {
   const t = (key) => translations[key] || key;
 
   if (!history || history.length === 0) {
@@ -42,10 +42,10 @@ const ExpenseTimeline = ({ history, darkMode, translations }) => {
             {label}
           </p>
           <p className={`text-sm ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
-            {t('monthly_cost')}: {formatCurrency(payload[0].value)}
+            {t('monthly_cost')}: {formatCurrency(payload[0].value, currencySymbol)}
           </p>
           <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            {t('annual_cost')}: {formatCurrency(payload[0].payload.annual)}
+            {t('annual_cost')}: {formatCurrency(payload[0].payload.annual, currencySymbol)}
           </p>
         </div>
       );
@@ -136,7 +136,7 @@ const ExpenseTimeline = ({ history, darkMode, translations }) => {
             {t('average')}
           </div>
           <div className={`text-sm font-semibold mt-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            {formatCurrency(values.reduce((a, b) => a + b, 0) / values.length)}
+            {formatCurrency(values.reduce((a, b) => a + b, 0) / values.length, currencySymbol)}
           </div>
         </div>
         <div>
@@ -144,7 +144,7 @@ const ExpenseTimeline = ({ history, darkMode, translations }) => {
             {t('lowest')}
           </div>
           <div className={`text-sm font-semibold mt-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            {formatCurrency(minValue)}
+            {formatCurrency(minValue, currencySymbol)}
           </div>
         </div>
         <div>
@@ -152,7 +152,7 @@ const ExpenseTimeline = ({ history, darkMode, translations }) => {
             {t('highest')}
           </div>
           <div className={`text-sm font-semibold mt-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            {formatCurrency(maxValue)}
+            {formatCurrency(maxValue, currencySymbol)}
           </div>
         </div>
       </div>

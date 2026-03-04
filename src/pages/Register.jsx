@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, Users, Mail, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, Users, Mail, Globe } from 'lucide-react';
 import { handleSupabaseError } from '../supabase';
 import { trackReferralSignup } from '../services/referralService';
 
@@ -15,6 +16,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const { signup } = useAuth();
+  const { t, language, setLanguage } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const refCode = searchParams.get('ref');
@@ -23,11 +25,10 @@ export default function Register() {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      return setError('Passwörter stimmen nicht überein');
+      return setError(t('password_mismatch'));
     }
-
     if (password.length < 6) {
-      return setError('Passwort muss mindestens 6 Zeichen lang sein');
+      return setError(t('password_too_short'));
     }
 
     try {
@@ -35,7 +36,6 @@ export default function Register() {
       setLoading(true);
       const data = await signup(email, password);
 
-      // Referral tracken falls vorhanden
       if (refCode && data?.user?.id) {
         await trackReferralSignup(refCode, data.user.id, email);
       }
@@ -51,7 +51,7 @@ export default function Register() {
 
   if (emailSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4">
         <div className="max-w-md w-full text-center space-y-6">
           <div className="flex justify-center">
             <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
@@ -59,15 +59,19 @@ export default function Register() {
             </div>
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Bestätigungsmail gesendet
+            {language === 'de' ? 'Bestätigungsmail gesendet' : 'Confirmation email sent'}
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
-            Wir haben eine Verifizierungsmail an <span className="font-semibold text-gray-900 dark:text-white">{email}</span> gesendet.
-            Bitte klicke auf den Link in der E-Mail, um dein Konto zu aktivieren.
+            {language === 'de'
+              ? <>Wir haben eine Verifizierungsmail an <span className="font-semibold text-gray-900 dark:text-white">{email}</span> gesendet. Bitte klicke auf den Link in der E-Mail, um dein Konto zu aktivieren.</>
+              : <>We sent a verification email to <span className="font-semibold text-gray-900 dark:text-white">{email}</span>. Please click the link in the email to activate your account.</>
+            }
           </p>
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
             <p className="text-sm text-blue-700 dark:text-blue-300">
-              Keine E-Mail erhalten? Prüfe deinen Spam-Ordner oder versuche es erneut.
+              {language === 'de'
+                ? 'Keine E-Mail erhalten? Prüfe deinen Spam-Ordner oder versuche es erneut.'
+                : "Didn't receive an email? Check your spam folder or try again."}
             </p>
           </div>
           <div className="flex flex-col gap-3">
@@ -75,13 +79,13 @@ export default function Register() {
               to="/login"
               className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
             >
-              Zur Anmeldung
+              {language === 'de' ? 'Zur Anmeldung' : 'Go to Sign In'}
             </Link>
             <button
               onClick={() => { setEmailSent(false); setEmail(''); setPassword(''); setConfirmPassword(''); }}
               className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
             >
-              Mit anderer E-Mail registrieren
+              {language === 'de' ? 'Mit anderer E-Mail registrieren' : 'Register with a different email'}
             </button>
           </div>
         </div>
@@ -92,94 +96,94 @@ export default function Register() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
+
+        {/* Language Toggle */}
+        <div className="flex justify-end">
+          <button
+            onClick={() => setLanguage(language === 'de' ? 'en' : 'de')}
+            className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 rounded-full shadow text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 transition-colors"
+          >
+            <Globe className="w-4 h-4" />
+            {language === 'de' ? 'English' : 'Deutsch'}
+          </button>
+        </div>
+
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            Konto erstellen
+          <h2 className="text-center text-3xl font-extrabold text-gray-900 dark:text-white">
+            {t('create_account')}
           </h2>
+          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+            {t('register_subtitle')}
+          </p>
           {refCode && (
             <div className="mt-3 flex items-center justify-center gap-2 text-green-600 dark:text-green-400">
               <Users className="w-4 h-4" />
-              <p className="text-sm font-medium">Eingeladen von einem Freund</p>
+              <p className="text-sm font-medium">
+                {language === 'de' ? 'Eingeladen von einem Freund' : 'Invited by a friend'}
+              </p>
             </div>
           )}
         </div>
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
             <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
               <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
             </div>
           )}
+
           <div className="rounded-md shadow-sm space-y-3">
-            <div>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="E-Mail-Adresse"
-              />
-            </div>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              placeholder={t('email')}
+            />
+
             <div className="relative">
               <input
-                type={showPassword ? "text" : "password"}
+                type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none rounded-md relative block w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Passwort"
+                className="appearance-none rounded-md relative block w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder={t('password')}
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                {showPassword ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
+              <button type="button" onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
+
             <div className="relative">
               <input
-                type={showConfirmPassword ? "text" : "password"}
+                type={showConfirmPassword ? 'text' : 'password'}
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="appearance-none rounded-md relative block w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Passwort bestätigen"
+                className="appearance-none rounded-md relative block w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder={t('confirm_password')}
               />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                {showConfirmPassword ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
+              <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              {loading ? 'Lädt...' : 'Registrieren'}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            {loading ? '...' : t('register_btn')}
+          </button>
 
           <div className="text-center">
-            <Link
-              to="/login"
-              className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
-            >
-              Bereits registriert? Jetzt anmelden
+            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400">
+              {t('already_account')} {t('login_link')}
             </Link>
           </div>
         </form>

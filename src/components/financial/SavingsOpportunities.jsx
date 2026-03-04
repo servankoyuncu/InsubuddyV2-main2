@@ -2,7 +2,7 @@ import React from 'react';
 import { TrendingDown, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { formatCurrency } from '../../services/financialService';
 
-const SavingsOpportunities = ({ recommendations, darkMode, translations }) => {
+const SavingsOpportunities = ({ recommendations, darkMode, translations, currencySymbol = 'CHF' }) => {
   const t = (key) => translations[key] || key;
 
   if (!recommendations || recommendations.length === 0) {
@@ -62,7 +62,7 @@ const SavingsOpportunities = ({ recommendations, darkMode, translations }) => {
         <div className="flex items-center gap-2">
           <TrendingDown className={`w-5 h-5 ${darkMode ? 'text-green-400' : 'text-green-600'}`} />
           <span className={`text-sm font-semibold ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
-            {t('potential_savings') || 'Potenzial'}: {formatCurrency(totalSavings)}/{t('year') || 'Jahr'}
+            {t('potential_savings') || 'Potenzial'}: {formatCurrency(totalSavings, currencySymbol)}/{t('year') || 'Jahr'}
           </span>
         </div>
       </div>
@@ -93,7 +93,7 @@ const SavingsOpportunities = ({ recommendations, darkMode, translations }) => {
                   {t('current_premium') || 'Aktuelle Prämie'}
                 </div>
                 <div className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {formatCurrency(rec.currentPremium)}
+                  {formatCurrency(rec.currentPremium, currencySymbol)}
                 </div>
               </div>
               <div>
@@ -101,7 +101,7 @@ const SavingsOpportunities = ({ recommendations, darkMode, translations }) => {
                   {t('market_average') || 'Marktdurchschnitt'}
                 </div>
                 <div className={`text-lg font-bold ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
-                  {formatCurrency(rec.recommendedPremium)}
+                  {formatCurrency(rec.recommendedPremium, currencySymbol)}
                 </div>
               </div>
             </div>
@@ -118,7 +118,7 @@ const SavingsOpportunities = ({ recommendations, darkMode, translations }) => {
                   {t('potential_savings') || 'Einsparpotenzial'}
                 </div>
                 <div className={`text-xl font-bold ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
-                  {formatCurrency(rec.savingsAmount)}
+                  {formatCurrency(rec.savingsAmount, currencySymbol)}
                 </div>
                 <div className={`text-xs ${darkMode ? 'text-green-300' : 'text-green-700'}`}>
                   ({rec.savingsPercentage}%)
@@ -154,7 +154,7 @@ const SavingsOpportunities = ({ recommendations, darkMode, translations }) => {
           </div>
           <div className="text-right">
             <div className={`text-2xl font-bold ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
-              {formatCurrency(totalSavings)}
+              {formatCurrency(totalSavings, currencySymbol)}
             </div>
             <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               {t('per_year') || 'pro Jahr'}

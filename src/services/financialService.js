@@ -237,7 +237,7 @@ export const generateSavingsRecommendations = async (userId, policies) => {
 /**
  * Format currency
  */
-export const formatCurrency = (amount, options = {}) => {
+export const formatCurrency = (amount, currencySymbol = 'CHF', options = {}) => {
   const {
     showDecimals = false,
     showCurrency = true
@@ -248,7 +248,7 @@ export const formatCurrency = (amount, options = {}) => {
     maximumFractionDigits: showDecimals ? 2 : 0
   });
 
-  return showCurrency ? `CHF ${formatted}` : formatted;
+  return showCurrency ? `${currencySymbol} ${formatted}` : formatted;
 };
 
 /**

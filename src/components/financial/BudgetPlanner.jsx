@@ -3,7 +3,7 @@ import { AlertCircle, CheckCircle, Edit2, X, Save } from 'lucide-react';
 import { getBudget, saveBudget, checkBudgetStatus } from '../../services/budgetService';
 import { formatCurrency } from '../../services/financialService';
 
-const BudgetPlanner = ({ currentSpending, userId, darkMode, translations }) => {
+const BudgetPlanner = ({ currentSpending, userId, darkMode, translations, currencySymbol = 'CHF' }) => {
   const [budget, setBudget] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -155,7 +155,7 @@ const BudgetPlanner = ({ currentSpending, userId, darkMode, translations }) => {
                   {t('current_spending') || 'Aktuelle Ausgaben'}
                 </span>
                 <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {formatCurrency(currentSpending)}
+                  {formatCurrency(currentSpending, currencySymbol)}
                 </span>
               </div>
               <div className="flex items-center justify-between mb-2">
@@ -163,7 +163,7 @@ const BudgetPlanner = ({ currentSpending, userId, darkMode, translations }) => {
                   {t('monthly_limit') || 'Monatliches Limit'}
                 </span>
                 <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {formatCurrency(budget.monthlyLimit)}
+                  {formatCurrency(budget.monthlyLimit, currencySymbol)}
                 </span>
               </div>
             </div>
@@ -182,7 +182,7 @@ const BudgetPlanner = ({ currentSpending, userId, darkMode, translations }) => {
                 </span>
                 <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   {budgetStatus.remaining > 0
-                    ? `${formatCurrency(budgetStatus.remaining)} ${t('remaining') || 'übrig'}`
+                    ? `${formatCurrency(budgetStatus.remaining, currencySymbol)} ${t('remaining') || 'übrig'}`
                     : t('budget_exceeded') || 'Budget überschritten'}
                 </span>
               </div>
@@ -210,7 +210,7 @@ const BudgetPlanner = ({ currentSpending, userId, darkMode, translations }) => {
                     {t('annual_limit') || 'Jährliches Limit'}
                   </span>
                   <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {formatCurrency(budget.annualLimit)}
+                    {formatCurrency(budget.annualLimit, currencySymbol)}
                   </span>
                 </div>
               </div>
@@ -238,7 +238,7 @@ const BudgetPlanner = ({ currentSpending, userId, darkMode, translations }) => {
             <div className="space-y-4">
               <div>
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  {t('monthly_limit') || 'Monatliches Limit'} (CHF) *
+                  {t('monthly_limit') || 'Monatliches Limit'} ({currencySymbol}) *
                 </label>
                 <input
                   type="number"
@@ -255,7 +255,7 @@ const BudgetPlanner = ({ currentSpending, userId, darkMode, translations }) => {
 
               <div>
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  {t('annual_limit') || 'Jährliches Limit'} (CHF)
+                  {t('annual_limit') || 'Jährliches Limit'} ({currencySymbol})
                 </label>
                 <input
                   type="number"

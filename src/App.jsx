@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -83,6 +84,7 @@ function PushNotificationSetup() {
 function App() {
   return (
     <Router>
+      <LanguageProvider>
       <AuthProvider>
         <PushNotificationSetup />
         <Suspense fallback={<PageLoader />}>
@@ -119,6 +121,7 @@ function App() {
         </Routes>
         </Suspense>
       </AuthProvider>
+      </LanguageProvider>
     </Router>
   );
 }

@@ -13,7 +13,7 @@ import ExpenseTimeline from './financial/ExpenseTimeline';
 import SavingsOpportunities from './financial/SavingsOpportunities';
 import BudgetPlanner from './financial/BudgetPlanner';
 
-const FinancialDashboard = ({ policies, darkMode, language, currentUser }) => {
+const FinancialDashboard = ({ policies, darkMode, language, currentUser, currencySymbol = 'CHF' }) => {
   const [snapshot, setSnapshot] = useState(null);
   const [history, setHistory] = useState([]);
   const [trend, setTrend] = useState({ percentage: 0, direction: 'neutral', amount: 0 });
@@ -241,6 +241,7 @@ const FinancialDashboard = ({ policies, darkMode, language, currentUser }) => {
         trend={trend}
         darkMode={darkMode}
         translations={t}
+        currencySymbol={currencySymbol}
       />
 
       {/* Two-column grid: Breakdown & Budget */}
@@ -249,12 +250,14 @@ const FinancialDashboard = ({ policies, darkMode, language, currentUser }) => {
           snapshot={snapshot}
           darkMode={darkMode}
           translations={t}
+          currencySymbol={currencySymbol}
         />
         <BudgetPlanner
           currentSpending={snapshot?.totalMonthly || 0}
           userId={currentUser?.id}
           darkMode={darkMode}
           translations={t}
+          currencySymbol={currencySymbol}
         />
       </div>
 
@@ -263,6 +266,7 @@ const FinancialDashboard = ({ policies, darkMode, language, currentUser }) => {
         history={history}
         darkMode={darkMode}
         translations={t}
+        currencySymbol={currencySymbol}
       />
 
       {/* Savings Opportunities */}
@@ -270,6 +274,7 @@ const FinancialDashboard = ({ policies, darkMode, language, currentUser }) => {
         recommendations={recommendations}
         darkMode={darkMode}
         translations={t}
+        currencySymbol={currencySymbol}
       />
     </div>
   );

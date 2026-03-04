@@ -2,7 +2,7 @@ import React from 'react';
 import { TrendingUp, TrendingDown, Minus, DollarSign, FileText } from 'lucide-react';
 import { formatCurrency } from '../../services/financialService';
 
-const FinancialOverview = ({ snapshot, trend, darkMode, translations }) => {
+const FinancialOverview = ({ snapshot, trend, darkMode, translations, currencySymbol = 'CHF' }) => {
   if (!snapshot) {
     return null;
   }
@@ -32,7 +32,7 @@ const FinancialOverview = ({ snapshot, trend, darkMode, translations }) => {
           <DollarSign className={`w-5 h-5 ${darkMode ? 'text-green-400' : 'text-green-600'}`} />
         </div>
         <div className={`text-3xl font-bold ${darkMode ? 'text-green-300' : 'text-green-600'}`}>
-          {formatCurrency(snapshot.totalMonthly)}
+          {formatCurrency(snapshot.totalMonthly, currencySymbol)}
         </div>
         <div className={`text-xs mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
           {t('per_month')}
@@ -48,7 +48,7 @@ const FinancialOverview = ({ snapshot, trend, darkMode, translations }) => {
           <FileText className={`w-5 h-5 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
         </div>
         <div className={`text-3xl font-bold ${darkMode ? 'text-blue-300' : 'text-blue-600'}`}>
-          {formatCurrency(snapshot.totalAnnual)}
+          {formatCurrency(snapshot.totalAnnual, currencySymbol)}
         </div>
         <div className={`text-xs mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
           {t('per_year')}
@@ -89,7 +89,7 @@ const FinancialOverview = ({ snapshot, trend, darkMode, translations }) => {
               {trend.percentage.toFixed(1)}%
             </div>
             <div className={`inline-flex items-center gap-2 mt-2 px-3 py-1 rounded-full text-xs font-medium ${getTrendColor()}`}>
-              {trend.direction === 'up' ? '↑' : '↓'} {formatCurrency(trend.amount)}
+              {trend.direction === 'up' ? '↑' : '↓'} {formatCurrency(trend.amount, currencySymbol)}
             </div>
           </>
         )}

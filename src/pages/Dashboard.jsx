@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Home, FileText, Camera, Bell, TrendingUp, AlertCircle, CheckCircle, Upload, Plus, ChevronRight, User, Users, Moon, Sun, Globe, X, Clock, Download, QrCode, Fingerprint, Check, Shield, ExternalLink, Star, Info, Sparkles, Crown, Heart, Car, Building, Baby, Briefcase, ChevronDown, MessageSquare, Send, Loader2, Gift, Copy, FileX } from 'lucide-react';
 import CancellationModal from '../components/CancellationModal';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { addPolicy, getUserPolicies, deletePolicy } from '../services/policyservice';
 import { getNotificationSettings, checkExpiringPolicies } from '../services/notificationService';
 import { addValuableItem, getUserValuableItems, deleteValuableItem, calculateTotalValue } from '../services/valuableItemsService';
@@ -163,97 +164,160 @@ const coverageTemplates = {
 
 // Deckungslücken-Radar: Empfohlene Versicherungen für die Schweiz
 const RECOMMENDED_INSURANCES = [
-  { type: 'Krankenkasse', priority: 'pflicht', label: 'Krankenkasse', description: 'Obligatorisch in der Schweiz', icon: Heart },
-  { type: 'Haftpflicht', priority: 'sehr_empfohlen', label: 'Haftpflicht', description: 'Schützt vor Schadenersatzforderungen Dritter', icon: Shield },
-  { type: 'Hausrat', priority: 'sehr_empfohlen', label: 'Hausrat', description: 'Schützt dein Hab und Gut bei Schäden', icon: Home },
-  { type: 'Rechtsschutz', priority: 'empfohlen', label: 'Rechtsschutz', description: 'Hilft bei rechtlichen Streitigkeiten', icon: FileText },
-  { type: 'Auto', priority: 'situativ', label: 'Auto', description: 'Pflicht wenn du ein Auto besitzt', icon: Car },
-  { type: 'Gebäude', priority: 'situativ', label: 'Gebäude', description: 'Wichtig für Immobilienbesitzer', icon: Building },
-  { type: 'Reise', priority: 'optional', label: 'Reise', description: 'Für Vielreisende empfohlen', icon: Globe },
+  { type: 'Krankenkasse', priority: 'pflicht', de: { label: 'Krankenkasse', description: 'Obligatorisch in der Schweiz' }, en: { label: 'Health Insurance', description: 'Mandatory in Switzerland' }, icon: Heart },
+  { type: 'Haftpflicht', priority: 'sehr_empfohlen', de: { label: 'Haftpflicht', description: 'Schützt vor Schadenersatzforderungen Dritter' }, en: { label: 'Liability', description: 'Protects against third-party claims' }, icon: Shield },
+  { type: 'Hausrat', priority: 'sehr_empfohlen', de: { label: 'Hausrat', description: 'Schützt dein Hab und Gut bei Schäden' }, en: { label: 'Household', description: 'Protects your belongings from damage' }, icon: Home },
+  { type: 'Rechtsschutz', priority: 'empfohlen', de: { label: 'Rechtsschutz', description: 'Hilft bei rechtlichen Streitigkeiten' }, en: { label: 'Legal Protection', description: 'Helps with legal disputes' }, icon: FileText },
+  { type: 'Auto', priority: 'situativ', de: { label: 'Auto', description: 'Pflicht wenn du ein Auto besitzt' }, en: { label: 'Car Insurance', description: 'Required if you own a car' }, icon: Car },
+  { type: 'Gebäude', priority: 'situativ', de: { label: 'Gebäude', description: 'Wichtig für Immobilienbesitzer' }, en: { label: 'Building', description: 'Important for property owners' }, icon: Building },
+  { type: 'Reise', priority: 'optional', de: { label: 'Reise', description: 'Für Vielreisende empfohlen' }, en: { label: 'Travel', description: 'Recommended for frequent travelers' }, icon: Globe },
 ];
 
 // Lebensereignis-Checker: Events mit Versicherungsempfehlungen
 const LIFE_EVENTS = [
   {
-    id: 'umzug', label: 'Umzug', icon: Home,
-    tips: [
-      { text: 'Hausratversicherung an neue Adresse anpassen', relatedType: 'Hausrat' },
-      { text: 'Gebäudeversicherung prüfen (falls Eigentum)', relatedType: 'Gebäude' },
-      { text: 'Haftpflichtversicherung aktualisieren', relatedType: 'Haftpflicht' },
-    ]
+    id: 'umzug', labelKey: 'le_umzug', icon: Home,
+    tips: {
+      de: [
+        { text: 'Hausratversicherung an neue Adresse anpassen', relatedType: 'Hausrat' },
+        { text: 'Gebäudeversicherung prüfen (falls Eigentum)', relatedType: 'Gebäude' },
+        { text: 'Haftpflichtversicherung aktualisieren', relatedType: 'Haftpflicht' },
+      ],
+      en: [
+        { text: 'Update household insurance to new address', relatedType: 'Hausrat' },
+        { text: 'Check building insurance (if you own the property)', relatedType: 'Gebäude' },
+        { text: 'Update liability insurance', relatedType: 'Haftpflicht' },
+      ]
+    }
   },
   {
-    id: 'heirat', label: 'Heirat', icon: Heart,
-    tips: [
-      { text: 'Haftpflicht zusammenlegen (spart Prämie)', relatedType: 'Haftpflicht' },
-      { text: 'Hausrat zusammenlegen', relatedType: 'Hausrat' },
-      { text: 'Begünstigte in Lebensversicherung anpassen', relatedType: null },
-      { text: 'Krankenkasse: Familienrabatte prüfen', relatedType: 'Krankenkasse' },
-    ]
+    id: 'heirat', labelKey: 'le_heirat', icon: Heart,
+    tips: {
+      de: [
+        { text: 'Haftpflicht zusammenlegen (spart Prämie)', relatedType: 'Haftpflicht' },
+        { text: 'Hausrat zusammenlegen', relatedType: 'Hausrat' },
+        { text: 'Begünstigte in Lebensversicherung anpassen', relatedType: null },
+        { text: 'Krankenkasse: Familienrabatte prüfen', relatedType: 'Krankenkasse' },
+      ],
+      en: [
+        { text: 'Combine liability insurance (saves premium)', relatedType: 'Haftpflicht' },
+        { text: 'Combine household insurance', relatedType: 'Hausrat' },
+        { text: 'Update beneficiaries in life insurance', relatedType: null },
+        { text: 'Health insurance: check family discounts', relatedType: 'Krankenkasse' },
+      ]
+    }
   },
   {
-    id: 'kind', label: 'Kind', icon: Baby,
-    tips: [
-      { text: 'Kind bei Krankenkasse anmelden', relatedType: 'Krankenkasse' },
-      { text: 'Haftpflicht auf Familienpolice erweitern', relatedType: 'Haftpflicht' },
-      { text: 'Lebensversicherung abschliessen / anpassen', relatedType: null },
-      { text: 'Hausrat-Versicherungssumme erhöhen', relatedType: 'Hausrat' },
-    ]
+    id: 'kind', labelKey: 'le_kind', icon: Baby,
+    tips: {
+      de: [
+        { text: 'Kind bei Krankenkasse anmelden', relatedType: 'Krankenkasse' },
+        { text: 'Haftpflicht auf Familienpolice erweitern', relatedType: 'Haftpflicht' },
+        { text: 'Lebensversicherung abschliessen / anpassen', relatedType: null },
+        { text: 'Hausrat-Versicherungssumme erhöhen', relatedType: 'Hausrat' },
+      ],
+      en: [
+        { text: 'Register child with health insurance', relatedType: 'Krankenkasse' },
+        { text: 'Extend liability to family policy', relatedType: 'Haftpflicht' },
+        { text: 'Take out / adjust life insurance', relatedType: null },
+        { text: 'Increase household insurance sum', relatedType: 'Hausrat' },
+      ]
+    }
   },
   {
-    id: 'auto', label: 'Auto', icon: Car,
-    tips: [
-      { text: 'Autoversicherung (Haftpflicht + Kasko) abschliessen', relatedType: 'Auto' },
-      { text: 'Verkehrsrechtsschutz prüfen', relatedType: 'Rechtsschutz' },
-      { text: 'Pannenhilfe / Assistance einschliessen', relatedType: 'Auto' },
-    ]
+    id: 'auto', labelKey: 'le_auto', icon: Car,
+    tips: {
+      de: [
+        { text: 'Autoversicherung (Haftpflicht + Kasko) abschliessen', relatedType: 'Auto' },
+        { text: 'Verkehrsrechtsschutz prüfen', relatedType: 'Rechtsschutz' },
+        { text: 'Pannenhilfe / Assistance einschliessen', relatedType: 'Auto' },
+      ],
+      en: [
+        { text: 'Get car insurance (liability + comprehensive)', relatedType: 'Auto' },
+        { text: 'Check traffic legal protection', relatedType: 'Rechtsschutz' },
+        { text: 'Include roadside assistance', relatedType: 'Auto' },
+      ]
+    }
   },
   {
-    id: 'hauskauf', label: 'Hauskauf', icon: Building,
-    tips: [
-      { text: 'Gebäudeversicherung abschliessen (oft kantonal)', relatedType: 'Gebäude' },
-      { text: 'Hausratversicherung anpassen', relatedType: 'Hausrat' },
-      { text: 'Erdbebenversicherung prüfen', relatedType: null },
-      { text: 'Hypothekarversicherung / Todesfallrisiko', relatedType: null },
-    ]
+    id: 'hauskauf', labelKey: 'le_hauskauf', icon: Building,
+    tips: {
+      de: [
+        { text: 'Gebäudeversicherung abschliessen (oft kantonal)', relatedType: 'Gebäude' },
+        { text: 'Hausratversicherung anpassen', relatedType: 'Hausrat' },
+        { text: 'Erdbebenversicherung prüfen', relatedType: null },
+        { text: 'Hypothekarversicherung / Todesfallrisiko', relatedType: null },
+      ],
+      en: [
+        { text: 'Get building insurance (often cantonal)', relatedType: 'Gebäude' },
+        { text: 'Adjust household insurance', relatedType: 'Hausrat' },
+        { text: 'Check earthquake insurance', relatedType: null },
+        { text: 'Mortgage protection / life risk insurance', relatedType: null },
+      ]
+    }
   },
   {
-    id: 'scheidung', label: 'Scheidung', icon: Users,
-    tips: [
-      { text: 'Haftpflicht: Einzelpolice abschliessen', relatedType: 'Haftpflicht' },
-      { text: 'Hausrat: Eigene Police abschliessen', relatedType: 'Hausrat' },
-      { text: 'Begünstigte in allen Policen ändern', relatedType: null },
-      { text: 'Krankenkasse: Prämienverbilligung prüfen', relatedType: 'Krankenkasse' },
-    ]
+    id: 'scheidung', labelKey: 'le_scheidung', icon: Users,
+    tips: {
+      de: [
+        { text: 'Haftpflicht: Einzelpolice abschliessen', relatedType: 'Haftpflicht' },
+        { text: 'Hausrat: Eigene Police abschliessen', relatedType: 'Hausrat' },
+        { text: 'Begünstigte in allen Policen ändern', relatedType: null },
+        { text: 'Krankenkasse: Prämienverbilligung prüfen', relatedType: 'Krankenkasse' },
+      ],
+      en: [
+        { text: 'Liability: take out individual policy', relatedType: 'Haftpflicht' },
+        { text: 'Household: get your own policy', relatedType: 'Hausrat' },
+        { text: 'Update beneficiaries in all policies', relatedType: null },
+        { text: 'Health insurance: check premium subsidies', relatedType: 'Krankenkasse' },
+      ]
+    }
   },
   {
-    id: 'pension', label: 'Pension', icon: Clock,
-    tips: [
-      { text: 'Vorsorge: 2. und 3. Säule prüfen', relatedType: null },
-      { text: 'Krankenkasse: Franchise und Modell optimieren', relatedType: 'Krankenkasse' },
-      { text: 'Unfallversicherung: Privat abschliessen (nicht mehr über Arbeitgeber)', relatedType: null },
-      { text: 'Rechtsschutz beibehalten', relatedType: 'Rechtsschutz' },
-    ]
+    id: 'pension', labelKey: 'le_pension', icon: Clock,
+    tips: {
+      de: [
+        { text: 'Vorsorge: 2. und 3. Säule prüfen', relatedType: null },
+        { text: 'Krankenkasse: Franchise und Modell optimieren', relatedType: 'Krankenkasse' },
+        { text: 'Unfallversicherung: Privat abschliessen (nicht mehr über Arbeitgeber)', relatedType: null },
+        { text: 'Rechtsschutz beibehalten', relatedType: 'Rechtsschutz' },
+      ],
+      en: [
+        { text: 'Pension: review 2nd and 3rd pillar', relatedType: null },
+        { text: 'Health insurance: optimize deductible and model', relatedType: 'Krankenkasse' },
+        { text: 'Accident insurance: get private coverage (no longer via employer)', relatedType: null },
+        { text: 'Keep legal protection insurance', relatedType: 'Rechtsschutz' },
+      ]
+    }
   },
   {
-    id: 'selbstaendig', label: 'Selbständig', icon: Briefcase,
-    tips: [
-      { text: 'Unfallversicherung selbst abschliessen (UVG-Pflicht entfällt)', relatedType: null },
-      { text: 'Berufshaftpflicht prüfen', relatedType: 'Haftpflicht' },
-      { text: 'Krankentaggeld-Versicherung abschliessen', relatedType: null },
-      { text: 'BVG: Freiwillig weiterversichern', relatedType: null },
-    ]
+    id: 'selbstaendig', labelKey: 'le_selbstaendig', icon: Briefcase,
+    tips: {
+      de: [
+        { text: 'Unfallversicherung selbst abschliessen (UVG-Pflicht entfällt)', relatedType: null },
+        { text: 'Berufshaftpflicht prüfen', relatedType: 'Haftpflicht' },
+        { text: 'Krankentaggeld-Versicherung abschliessen', relatedType: null },
+        { text: 'BVG: Freiwillig weiterversichern', relatedType: null },
+      ],
+      en: [
+        { text: 'Get accident insurance yourself (employer obligation ends)', relatedType: null },
+        { text: 'Check professional liability insurance', relatedType: 'Haftpflicht' },
+        { text: 'Take out daily sickness allowance insurance', relatedType: null },
+        { text: 'BVG: Continue voluntarily', relatedType: null },
+      ]
+    }
   },
 ];
 
 function Dashboard() {
   const { currentUser, logout } = useAuth();
   const { isAdmin } = useAdmin();
+  const { t, language, setLanguage, currency, setCurrency, currencySymbol, CURRENCIES } = useLanguage();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [darkMode, setDarkMode] = useState(false);
-  const [language, setLanguage] = useState('de');
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  const [showCurrencyMenu, setShowCurrencyMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
@@ -587,133 +651,6 @@ function Dashboard() {
     }
   }, [policies, notificationSettings]);
 
-  const translations = {
-    de: {
-      app_title: 'InsuBuddy',
-      app_subtitle: 'Ihr intelligenter Lebenslagen-Navigator',
-      tab_overview: 'Übersicht',
-      tab_policies: 'Policen',
-      tab_vault: 'Tresor',
-      tab_finances: 'Finanzen',
-      tab_advisors: 'Berater',
-      tab_chat: 'KI-Chat',
-      tab_profile: 'Profil',
-      active_policies: 'Aktive Policen',
-      secured_values: 'Gesicherte Werte',
-      recommendations: 'Empfehlungen',
-      action_required: 'Handlungsbedarf',
-      policy_overview: 'Policen-Übersicht',
-      annual_premium: 'Jährliche Gesamtprämie',
-      check_needed: 'Prüfung nötig',
-      optimal: 'Optimal',
-      coverage: 'Deckung',
-      premium: 'Prämie',
-      digital_vault: 'Digitaler Tresor',
-      secured_values_proof: 'Gesicherte Werte mit Nachweis',
-      language: 'Sprache',
-      cancel: 'Abbrechen',
-      mark_all_read: 'Alle als gelesen',
-      no_notifications: 'Keine Benachrichtigungen',
-      household: 'Hausrat',
-      car: 'Auto',
-      liability: 'Haftpflicht',
-      health: 'Krankenkasse',
-      filter_all: 'Alle',
-      filter_warning: 'Warnungen',
-      filter_reminder: 'Erinnerungen',
-      filter_info: 'Info',
-      export_data: 'Daten exportieren',
-      export_policies: 'Policen PDF',
-      export_vault: 'Tresor Excel',
-      export_all: 'Alles',
-      scan_receipt: 'Beleg scannen',
-      qr_scanner: 'QR-Scanner',
-      scan_instruction: 'QR-Code positionieren',
-      biometric_auth: 'Biometrie',
-      biometric_desc: 'Face ID aktivieren',
-      biometric_setup_title: 'Biometrie einrichten',
-      biometric_setup_desc: 'Mit Face ID schützen',
-      setup_now: 'Jetzt einrichten',
-      save: 'Speichern',
-      add_policy: 'Police hinzufügen',
-      upload_policy_pdf: 'Police hochladen',
-      select_pdf: 'PDF auswählen',
-      or_drag_drop: 'oder hierher ziehen',
-      policy_name: 'Policen-Name',
-      policy_company: 'Versicherung',
-      policy_type: 'Typ',
-      select_type: 'Typ auswählen',
-      notifications: 'Benachrichtigungen',
-      notif_policy_update: 'Hausrat anpassen',
-      notif_document_uploaded: 'Dokument hochgeladen',
-      notif_savings_found: 'CHF 420 Sparpotenzial',
-      notif_renewal_reminder: 'Auto läuft ab'
-    },
-    en: {
-      app_title: 'InsuBuddy',
-      app_subtitle: 'Your intelligent navigator',
-      tab_overview: 'Overview',
-      tab_policies: 'Policies',
-      tab_vault: 'Vault',
-      tab_finances: 'Finances',
-      tab_advisors: 'Advisors',
-      tab_chat: 'AI Chat',
-      tab_profile: 'Profile',
-      active_policies: 'Active Policies',
-      secured_values: 'Secured Values',
-      recommendations: 'Recommendations',
-      action_required: 'Action Required',
-      policy_overview: 'Policy Overview',
-      annual_premium: 'Annual Premium',
-      check_needed: 'Check Needed',
-      optimal: 'Optimal',
-      coverage: 'Coverage',
-      premium: 'Premium',
-      digital_vault: 'Digital Vault',
-      secured_values_proof: 'Secured Values',
-      language: 'Language',
-      cancel: 'Cancel',
-      mark_all_read: 'Mark all read',
-      no_notifications: 'No notifications',
-      household: 'Household',
-      car: 'Car',
-      liability: 'Liability',
-      health: 'Health',
-      filter_all: 'All',
-      filter_warning: 'Warnings',
-      filter_reminder: 'Reminders',
-      filter_info: 'Info',
-      export_data: 'Export Data',
-      export_policies: 'Policies PDF',
-      export_vault: 'Vault Excel',
-      export_all: 'All',
-      scan_receipt: 'Scan Receipt',
-      qr_scanner: 'QR Scanner',
-      scan_instruction: 'Position QR-code',
-      biometric_auth: 'Biometric',
-      biometric_desc: 'Enable Face ID',
-      biometric_setup_title: 'Setup Biometric',
-      biometric_setup_desc: 'Protect with Face ID',
-      setup_now: 'Setup Now',
-      save: 'Save',
-      add_policy: 'Add Policy',
-      upload_policy_pdf: 'Upload Policy',
-      select_pdf: 'Select PDF',
-      or_drag_drop: 'or drag here',
-      policy_name: 'Policy Name',
-      policy_company: 'Company',
-      policy_type: 'Type',
-      select_type: 'Select type',
-      notifications: 'Notifications',
-      notif_policy_update: 'Update insurance',
-      notif_document_uploaded: 'Document uploaded',
-      notif_savings_found: 'CHF 420 savings',
-      notif_renewal_reminder: 'Car expires soon'
-    }
-  };
-
-  const t = (key) => translations[language][key] || key;
-
   const languages = [
     { code: 'de', name: 'Deutsch', flag: '🇨🇭' },
     { code: 'en', name: 'English', flag: '🇬🇧' }
@@ -791,7 +728,7 @@ function Dashboard() {
         name: policyName,
         company: policyCompany,
         type: policyType,
-        premium: policyPremium ? `CHF ${policyPremium}/Jahr` : 'CHF 0/Jahr',
+        premium: policyPremium ? `${currencySymbol} ${policyPremium}/Jahr` : `${currencySymbol} 0/Jahr`,
         expiryDate: policyExpiryDate || null,
         coverage: policyCoverage,
         status: 'ok'
@@ -1050,6 +987,9 @@ function Dashboard() {
             <button onClick={() => setShowLanguageMenu(true)} className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
               <Globe className="w-5 h-5" />
             </button>
+            <button onClick={() => setShowCurrencyMenu(true)} className={`px-2 py-1.5 rounded-lg text-xs font-semibold ${darkMode ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-700'}`}>
+              {currency}
+            </button>
             <button onClick={() => setShowNotifications(true)} className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} relative`}>
               <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
@@ -1080,20 +1020,20 @@ function Dashboard() {
                 <div className={`text-2xl font-bold ${darkMode ? 'text-green-300' : 'text-green-600'}`}>
                   {policies.filter(p => p.file).length}
                 </div>
-                <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Mit PDF</div>
+                <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('with_pdf')}</div>
               </div>
               <div className={`${darkMode ? 'bg-orange-900/80' : 'bg-orange-50/80'} backdrop-blur-xl p-4 rounded-2xl shadow-lg shadow-orange-500/10 transition-all duration-300`}>
                 <div className={`text-2xl font-bold ${darkMode ? 'text-orange-300' : 'text-orange-600'}`}>
                   {policies.filter(p => getDaysUntilExpiry(p.expiryDate) <= 30 && getDaysUntilExpiry(p.expiryDate) >= 0).length}
                 </div>
-                <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Laufen bald ab</div>
+                <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('expiring_soon')}</div>
               </div>
             </div>
 
             {policies.filter(p => getDaysUntilExpiry(p.expiryDate) <= 30 && getDaysUntilExpiry(p.expiryDate) >= 0).length > 0 && (
               <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border transition-all duration-300`}>
                 <div className={`p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                  <h2 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>⚠️ Ablaufende Policen</h2>
+                  <h2 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('expiring_policies')}</h2>
                 </div>
                 {policies.filter(p => getDaysUntilExpiry(p.expiryDate) <= 30 && getDaysUntilExpiry(p.expiryDate) >= 0).map((policy, i) => (
                   <div key={i} className={`p-4 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}>
@@ -1102,9 +1042,9 @@ function Dashboard() {
                       <div className="flex-1">
                         <div className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{policy.type} - {policy.company}</div>
                         <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                          Läuft in {getDaysUntilExpiry(policy.expiryDate)} Tagen ab
+                          {t('expires_in_days')} {getDaysUntilExpiry(policy.expiryDate)} {t('days_suffix')}
                         </div>
-                        <div className="text-sm text-blue-600 mt-2">Jetzt verlängern</div>
+                        <div className="text-sm text-blue-600 mt-2">{t('renew_now')}</div>
                       </div>
                     </div>
                   </div>
@@ -1116,27 +1056,27 @@ function Dashboard() {
             {policies.length > 0 && (
               <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-6 transition-all duration-300`}>
                 <h2 className={`font-semibold text-lg mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  📊 Deine Versicherungen {new Date().getFullYear()}
+                  📊 {t('your_insurances')} {new Date().getFullYear()}
                 </h2>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Jährliche Kosten</div>
+                    <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('annual_costs')}</div>
                     <div className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                      CHF {calculateTotalAnnualPremium().toLocaleString('de-CH')}
+                      {currencySymbol} {calculateTotalAnnualPremium().toLocaleString('de-CH')}
                     </div>
                   </div>
                   <div>
-                    <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Pro Monat</div>
+                    <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('per_month')}</div>
                     <div className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                      CHF {Math.round(calculateTotalAnnualPremium() / 12).toLocaleString('de-CH')}
+                      {currencySymbol} {Math.round(calculateTotalAnnualPremium() / 12).toLocaleString('de-CH')}
                     </div>
                   </div>
                   <div>
-                    <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Aktive Policen</div>
+                    <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('active_policies_label')}</div>
                     <div className={`text-2xl font-bold text-blue-600`}>{policies.length}</div>
                   </div>
                   <div>
-                    <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Dokumentiert</div>
+                    <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('documented')}</div>
                     <div className={`text-2xl font-bold text-green-600`}>
                       {policies.filter(p => p.file).length}/{policies.length}
                     </div>
@@ -1149,7 +1089,7 @@ function Dashboard() {
             {getPremiumBreakdown().length > 0 && (
               <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-6 transition-all duration-300`}>
                 <h2 className={`font-semibold text-lg mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  💳 Monatliche Prämien-Übersicht
+                  {t('monthly_premium_overview')}
                 </h2>
                 <div className="space-y-4">
                   {getPremiumBreakdown().map((item, idx) => {
@@ -1163,7 +1103,7 @@ function Dashboard() {
                             {item.type}
                           </span>
                           <span className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                            CHF {item.monthly}
+                            {currencySymbol} {item.monthly}
                           </span>
                         </div>
                         <div className={`w-full h-3 rounded-full overflow-hidden ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
@@ -1177,7 +1117,7 @@ function Dashboard() {
                   })}
                 </div>
                 <div className={`mt-4 pt-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'} text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Total pro Monat: <span className="font-bold">CHF {getPremiumBreakdown().reduce((sum, p) => sum + p.monthly, 0).toLocaleString('de-CH')}</span>
+                  {t('total_per_month')}: <span className="font-bold">{currencySymbol} {getPremiumBreakdown().reduce((sum, p) => sum + p.monthly, 0).toLocaleString('de-CH')}</span>
                 </div>
               </div>
             )}
@@ -1197,11 +1137,11 @@ function Dashboard() {
 
               const priorityColor = (priority) => {
                 const colors = {
-                  pflicht: { bg: darkMode ? 'bg-red-900/40' : 'bg-red-50', text: darkMode ? 'text-red-300' : 'text-red-700', badge: darkMode ? 'bg-red-800 text-red-200' : 'bg-red-100 text-red-700', label: 'Pflicht' },
-                  sehr_empfohlen: { bg: darkMode ? 'bg-orange-900/40' : 'bg-orange-50', text: darkMode ? 'text-orange-300' : 'text-orange-700', badge: darkMode ? 'bg-orange-800 text-orange-200' : 'bg-orange-100 text-orange-700', label: 'Sehr empfohlen' },
-                  empfohlen: { bg: darkMode ? 'bg-yellow-900/40' : 'bg-yellow-50', text: darkMode ? 'text-yellow-300' : 'text-yellow-700', badge: darkMode ? 'bg-yellow-800 text-yellow-200' : 'bg-yellow-100 text-yellow-700', label: 'Empfohlen' },
-                  situativ: { bg: darkMode ? 'bg-blue-900/40' : 'bg-blue-50', text: darkMode ? 'text-blue-300' : 'text-blue-700', badge: darkMode ? 'bg-blue-800 text-blue-200' : 'bg-blue-100 text-blue-700', label: 'Situativ' },
-                  optional: { bg: darkMode ? 'bg-gray-700/40' : 'bg-gray-50', text: darkMode ? 'text-gray-300' : 'text-gray-600', badge: darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600', label: 'Optional' },
+                  pflicht: { bg: darkMode ? 'bg-red-900/40' : 'bg-red-50', text: darkMode ? 'text-red-300' : 'text-red-700', badge: darkMode ? 'bg-red-800 text-red-200' : 'bg-red-100 text-red-700' },
+                  sehr_empfohlen: { bg: darkMode ? 'bg-orange-900/40' : 'bg-orange-50', text: darkMode ? 'text-orange-300' : 'text-orange-700', badge: darkMode ? 'bg-orange-800 text-orange-200' : 'bg-orange-100 text-orange-700' },
+                  empfohlen: { bg: darkMode ? 'bg-yellow-900/40' : 'bg-yellow-50', text: darkMode ? 'text-yellow-300' : 'text-yellow-700', badge: darkMode ? 'bg-yellow-800 text-yellow-200' : 'bg-yellow-100 text-yellow-700' },
+                  situativ: { bg: darkMode ? 'bg-blue-900/40' : 'bg-blue-50', text: darkMode ? 'text-blue-300' : 'text-blue-700', badge: darkMode ? 'bg-blue-800 text-blue-200' : 'bg-blue-100 text-blue-700' },
+                  optional: { bg: darkMode ? 'bg-gray-700/40' : 'bg-gray-50', text: darkMode ? 'text-gray-300' : 'text-gray-600', badge: darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600' },
                 };
                 return colors[priority] || colors.optional;
               };
@@ -1214,10 +1154,10 @@ function Dashboard() {
                     </div>
                     <div>
                       <h2 className={`font-semibold text-lg ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                        Deckungslücken-Radar
+                        {t('coverage_radar')}
                       </h2>
                       <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        Wie gut bist du abgesichert?
+                        {t('coverage_radar_sub')}
                       </p>
                     </div>
                   </div>
@@ -1226,7 +1166,7 @@ function Dashboard() {
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                        {coveredCount} von {total} abgedeckt
+                        {coveredCount} {t('of')} {total} {t('covered_label')}
                       </span>
                       <span className={`text-sm font-bold ${percentage >= 70 ? 'text-green-500' : percentage >= 40 ? 'text-orange-500' : 'text-red-500'}`}>
                         {percentage}%
@@ -1244,8 +1184,8 @@ function Dashboard() {
                     <div className={`p-4 rounded-xl flex items-center gap-3 ${darkMode ? 'bg-green-900/30' : 'bg-green-50'}`}>
                       <CheckCircle className="w-6 h-6 text-green-500" />
                       <div>
-                        <p className={`font-semibold ${darkMode ? 'text-green-300' : 'text-green-700'}`}>Gut abgesichert!</p>
-                        <p className={`text-sm ${darkMode ? 'text-green-400' : 'text-green-600'}`}>Du hast alle wichtigen Versicherungen abgedeckt.</p>
+                        <p className={`font-semibold ${darkMode ? 'text-green-300' : 'text-green-700'}`}>{t('well_covered')}</p>
+                        <p className={`text-sm ${darkMode ? 'text-green-400' : 'text-green-600'}`}>{t('well_covered_sub')}</p>
                       </div>
                     </div>
                   ) : (
@@ -1258,10 +1198,10 @@ function Dashboard() {
                             <IconComp className={`w-5 h-5 ${colors.text}`} />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className={`font-medium text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>{ins.label}</span>
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${colors.badge}`}>{colors.label}</span>
+                                <span className={`font-medium text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>{ins[language].label}</span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${colors.badge}`}>{t(`priority_${ins.priority}`)}</span>
                               </div>
-                              <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{ins.description}</p>
+                              <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{ins[language].description}</p>
                             </div>
                             <AlertCircle className={`w-4 h-4 flex-shrink-0 ${colors.text}`} />
                           </div>
@@ -1273,12 +1213,12 @@ function Dashboard() {
                   {/* Vorhandene als kleine Chips */}
                   {covered.length > 0 && missing.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-dashed" style={{ borderColor: darkMode ? '#374151' : '#E5E7EB' }}>
-                      <p className={`text-xs font-medium mb-2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>ABGEDECKT</p>
+                      <p className={`text-xs font-medium mb-2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{t('covered_tag')}</p>
                       <div className="flex flex-wrap gap-2">
                         {covered.map(ins => (
                           <span key={ins.type} className={`text-xs px-2.5 py-1 rounded-full flex items-center gap-1 ${darkMode ? 'bg-green-900/30 text-green-400' : 'bg-green-50 text-green-700'}`}>
                             <CheckCircle className="w-3 h-3" />
-                            {ins.label}
+                            {ins[language].label}
                           </span>
                         ))}
                       </div>
@@ -1296,10 +1236,10 @@ function Dashboard() {
                 </div>
                 <div>
                   <h2 className={`font-semibold text-lg ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                    Lebensereignis-Checker
+                    {t('life_event_checker')}
                   </h2>
                   <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Was steht bei dir an?
+                    {t('life_event_sub')}
                   </p>
                 </div>
               </div>
@@ -1322,7 +1262,7 @@ function Dashboard() {
                       }`}
                     >
                       <IconComp className="w-4 h-4" />
-                      <span className="text-[10px] font-medium leading-tight">{event.label}</span>
+                      <span className="text-[10px] font-medium leading-tight">{t(event.labelKey)}</span>
                     </button>
                   );
                 })}
@@ -1338,10 +1278,10 @@ function Dashboard() {
                   <div className={`mt-4 p-4 rounded-xl ${darkMode ? 'bg-gray-700/50' : 'bg-purple-50'}`}>
                     <h3 className={`font-semibold mb-3 flex items-center gap-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                       <event.icon className="w-5 h-5 text-purple-500" />
-                      Checkliste: {event.label}
+                      {t('checklist')}: {t(event.labelKey)}
                     </h3>
                     <div className="space-y-2.5">
-                      {event.tips.map((tip, idx) => {
+                      {event.tips[language].map((tip, idx) => {
                         const hasCoverage = tip.relatedType && userTypes.some(t => t && t.toLowerCase().includes(tip.relatedType.toLowerCase()));
                         return (
                           <div key={idx} className="flex items-start gap-3">
@@ -1353,10 +1293,10 @@ function Dashboard() {
                             <div>
                               <p className={`text-sm ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>{tip.text}</p>
                               {hasCoverage && (
-                                <p className="text-xs text-green-500 mt-0.5">Bereits abgedeckt</p>
+                                <p className="text-xs text-green-500 mt-0.5">{t('already_covered')}</p>
                               )}
                               {!hasCoverage && tip.relatedType && (
-                                <p className="text-xs text-red-400 mt-0.5">Noch nicht vorhanden</p>
+                                <p className="text-xs text-red-400 mt-0.5">{t('not_yet')}</p>
                               )}
                             </div>
                           </div>
@@ -1368,7 +1308,7 @@ function Dashboard() {
                       className="mt-4 w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors"
                     >
                       <Users className="w-4 h-4" />
-                      Berater kontaktieren
+                      {t('contact_advisor')}
                     </button>
                   </div>
                 );
@@ -1379,10 +1319,10 @@ function Dashboard() {
             {partnerInsurances.length > 0 && (
               <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-6 transition-all duration-300`}>
                 <h2 className={`font-semibold text-lg mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  🎯 Empfohlene Versicherungen
+                  {t('recommended_insurances')}
                 </h2>
                 <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Ausgewählte Partner-Angebote für Sie
+                  {t('partner_offers')}
                 </p>
                 <div className="space-y-3">
                   {partnerInsurances.slice(0, 3).map((partner) => (
@@ -1438,7 +1378,7 @@ function Dashboard() {
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                           >
-                            Angebot ansehen
+                            {t('view_offer')}
                             <ExternalLink className="w-4 h-4" />
                           </a>
                         </div>
@@ -1449,7 +1389,7 @@ function Dashboard() {
                 
                 {partnerInsurances.length > 3 && (
                   <button className={`w-full mt-4 py-2 text-sm font-medium ${darkMode ? 'text-blue-400' : 'text-blue-600'} hover:underline`}>
-                    Alle Empfehlungen ansehen ({partnerInsurances.length})
+                    {t('view_all')} ({partnerInsurances.length})
                   </button>
                 )}
               </div>
@@ -1462,7 +1402,7 @@ function Dashboard() {
             <div className="bg-gradient-to-br from-blue-500 via-cyan-500 to-blue-600 text-white p-6 rounded-2xl shadow-xl shadow-blue-500/30">
               <h2 className="text-xl font-semibold mb-2">{t('policy_overview')}</h2>
               <div className="text-3xl font-bold">
-                CHF {policies.reduce((sum, p) => {
+                {currencySymbol} {policies.reduce((sum, p) => {
                   const premiumMatch = p.premium?.match(/(\d+)/);
                   const premium = premiumMatch ? parseInt(premiumMatch[0]) : 0;
                   return sum + premium;
@@ -1507,7 +1447,7 @@ function Dashboard() {
             {policies.length === 0 ? (
               <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-8 text-center`}>
                 <FileText className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
-                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Noch keine Policen hinzugefügt</p>
+                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('no_policies')}</p>
               </div>
             ) : (
               policies.map((p, i) => {
@@ -1587,7 +1527,7 @@ function Dashboard() {
                         <div className="flex items-center gap-2 mb-3">
                           <Shield className="w-4 h-4 text-blue-600" />
                           <span className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                            Deckungen
+                            {t('coverages_label')}
                           </span>
                         </div>
                         <div className="space-y-1">
@@ -1635,9 +1575,9 @@ function Dashboard() {
             <div className="bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 text-white p-6 rounded-2xl shadow-xl shadow-purple-500/30">
               <h2 className="text-xl font-semibold mb-2">{t('digital_vault')}</h2>
               <div className="text-3xl font-bold">
-                CHF {calculateTotalValue(valuableItems).toLocaleString('de-CH')}
+                {currencySymbol} {calculateTotalValue(valuableItems).toLocaleString('de-CH')}
               </div>
-              <div className="text-sm opacity-90">{valuableItems.length} Wertgegenstände gesichert</div>
+              <div className="text-sm opacity-90">{valuableItems.length} {t('secured_items')}</div>
             </div>
             
             <button 
@@ -1645,15 +1585,15 @@ function Dashboard() {
               className="w-full bg-blue-600 text-white py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700"
             >
               <Plus className="w-5 h-5" />
-              Wertgegenstand hinzufügen
+              {t('add_item')}
             </button>
-            
+
             {valuableItems.length === 0 ? (
               <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-8 text-center`}>
                 <Camera className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
-                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Noch keine Wertgegenstände hinzugefügt</p>
+                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('no_items')}</p>
                 <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                  Dokumentieren Sie Ihre wertvollen Gegenstände mit Foto
+                  {t('no_items_sub')}
                 </p>
               </div>
             ) : (
@@ -1682,7 +1622,7 @@ function Dashboard() {
                           </p>
                           {item.purchaseDate && (
                             <p className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                              Gekauft: {new Date(item.purchaseDate).toLocaleDateString('de-CH')}
+                              {t('item_purchased')} {new Date(item.purchaseDate).toLocaleDateString('de-CH')}
                             </p>
                           )}
                         </div>
@@ -1695,7 +1635,7 @@ function Dashboard() {
                         </button>
                       </div>
                       <div className="text-lg font-bold text-blue-600 mt-2">
-                        CHF {parseFloat(item.value).toLocaleString('de-CH')}
+                        {currencySymbol} {parseFloat(item.value).toLocaleString('de-CH')}
                       </div>
                     </div>
                   </div>
@@ -1712,6 +1652,7 @@ function Dashboard() {
               darkMode={darkMode}
               language={language}
               currentUser={currentUser}
+              currencySymbol={currencySymbol}
             />
           </Suspense>
         )}
@@ -1720,18 +1661,18 @@ function Dashboard() {
           <div className="space-y-4 animate-fadeIn">
             <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-6 transition-all duration-300`}>
               <h2 className={`text-xl font-bold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Empfohlene Berater
+                {t('advisors_title')}
               </h2>
               <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                Finde den passenden Versicherungsberater in deiner Nähe
+                {t('advisors_sub')}
               </p>
             </div>
 
             {advisors.length === 0 ? (
               <div className={`text-center py-12 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 <Users className={`w-16 h-16 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
-                <p className="font-medium text-lg mb-2">Noch keine Berater verfügbar</p>
-                <p className="text-sm">Berater werden bald hinzugefügt.</p>
+                <p className="font-medium text-lg mb-2">{t('no_advisors')}</p>
+                <p className="text-sm">{t('no_advisors_sub')}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -1762,7 +1703,7 @@ function Dashboard() {
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold">{currentUser?.email}</h2>
-                  <p className="text-sm">InsuBuddy Nutzer</p>
+                  <p className="text-sm">{t('profile_user')}</p>
                 </div>
               </div>
             </div>
@@ -1771,17 +1712,17 @@ function Dashboard() {
             <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border p-4`}>
               <div className="flex items-center gap-3 mb-4">
                 <Bell className="w-6 h-6 text-indigo-600" />
-                <h3 className="text-lg font-semibold">Benachrichtigungen</h3>
+                <h3 className="text-lg font-semibold">{t('notifications')}</h3>
               </div>
               
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                      Ablauf-Erinnerungen
+                      {t('expiry_reminders')}
                     </p>
                     <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Benachrichtigungen über ablaufende Policen
+                      {t('expiry_reminders_sub')}
                     </p>
                   </div>
                   <button
@@ -1810,7 +1751,7 @@ function Dashboard() {
                 {notificationSettings.enabled && (
                   <div>
                     <label className={`block text-sm font-medium mb-3 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                      Benachrichtigung {notificationSettings.reminderDays} Tage vor Ablauf
+                      {t('notify_before')} {notificationSettings.reminderDays} {t('days_before_expiry')}
                     </label>
                     <div className="flex gap-2 flex-wrap">
                       {[7, 14, 30, 60, 90].map((days) => (
@@ -1852,13 +1793,14 @@ function Dashboard() {
                 <div className="flex items-center gap-3">
                   <MessageSquare className="w-6 h-6 text-cyan-600" />
                   <h3 className="text-lg font-semibold">Support</h3>
+
                 </div>
                 <button
                   onClick={() => setShowTicketModal(true)}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 text-white text-sm rounded-lg hover:bg-cyan-700 transition-colors"
                 >
                   <Plus className="w-4 h-4" />
-                  Neues Ticket
+                  {t('new_ticket')}
                 </button>
               </div>
 
@@ -1894,7 +1836,7 @@ function Dashboard() {
                       {ticket.admin_reply && (
                         <div className={`mt-3 p-3 rounded-lg border-l-4 border-green-500 ${darkMode ? 'bg-gray-600' : 'bg-green-50'}`}>
                           <p className={`text-xs font-medium mb-1 ${darkMode ? 'text-green-400' : 'text-green-700'}`}>
-                            Antwort vom Support:
+                            {t('support_reply')}
                           </p>
                           <p className={`text-sm ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
                             {ticket.admin_reply}
@@ -1920,8 +1862,8 @@ function Dashboard() {
                     <Gift className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Freunde einladen</h3>
-                    <p className="text-sm text-green-100">Teile InsuBuddy mit deinen Freunden</p>
+                    <h3 className="font-semibold">{t('invite_friends')}</h3>
+                    <p className="text-sm text-green-100">{t('invite_friends_sub')}</p>
                   </div>
                 </div>
               </div>
@@ -1929,7 +1871,7 @@ function Dashboard() {
                 {/* Referral Link + Copy */}
                 <div className={`flex items-center gap-2 p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-xs mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Dein persönlicher Link</p>
+                    <p className={`text-xs mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{t('personal_link')}</p>
                     <p className={`text-sm font-mono truncate ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
                       {referralCode ? getReferralLink(referralCode) : 'Wird geladen...'}
                     </p>
@@ -2027,13 +1969,13 @@ function Dashboard() {
                 className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 mb-3 flex items-center justify-center gap-2"
               >
                 <User className="w-5 h-5" />
-                Konto-Einstellungen
+                {t('account_settings_btn')}
               </button>
               <button
                 onClick={logout}
                 className="w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700"
               >
-                Abmelden
+                {t('logout')}
               </button>
             </div>
           </div>
@@ -2059,7 +2001,7 @@ function Dashboard() {
                   <MessageSquare className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h2 className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>KI-Versicherungsassistent</h2>
+                  <h2 className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('chat_title')}</h2>
                   <p className={`text-xs ${darkMode ? 'text-indigo-400' : 'text-indigo-500'}`}>Powered by Claude AI</p>
                 </div>
               </div>
@@ -2163,7 +2105,7 @@ function Dashboard() {
 
               <div>
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  Jährliche Prämie (CHF)
+                  {t('annual_premium_field')} ({currencySymbol})
                 </label>
                 <input 
                   type="number" 
@@ -2176,10 +2118,10 @@ function Dashboard() {
 
               <div>
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  Ablaufdatum (optional)
+                  {t('expiry_date_field')}
                 </label>
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   value={policyExpiryDate}
                   onChange={(e) => setPolicyExpiryDate(e.target.value)}
                   className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
@@ -2190,7 +2132,7 @@ function Dashboard() {
               {policyType && coverageTemplates[policyType] && (
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    Was ist gedeckt? (Optional)
+                    {t('what_covered')}
                   </label>
                   <div className={`border rounded-lg p-4 space-y-2 max-h-64 overflow-y-auto ${darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'}`}>
                     {coverageTemplates[policyType].map((coverage, idx) => (
@@ -2284,7 +2226,7 @@ function Dashboard() {
                 disabled={loading}
                 className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
               >
-                {loading ? 'Wird gespeichert...' : t('save')}
+                {loading ? t('saving') : t('save')}
               </button>
             </div>
           </div>
@@ -2332,27 +2274,99 @@ function Dashboard() {
 
       {/* Language Menu Modal */}
       {showLanguageMenu && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg max-w-sm w-full p-6`}>
-            <h2 className={`text-xl font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('language')}</h2>
-            <div className="space-y-2 mb-6">
-              {languages.map(lang => (
-                <button
-                  key={lang.code}
-                  onClick={() => { setLanguage(lang.code); setShowLanguageMenu(false); }}
-                  className={`w-full text-left p-3 rounded-lg flex items-center gap-3 ${
-                    language === lang.code ? 'bg-blue-600 text-white' : darkMode ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-900'
-                  }`}
-                >
-                  <span className="text-2xl">{lang.flag}</span>
-                  <span className="font-medium">{lang.name}</span>
-                  {language === lang.code && <CheckCircle className="w-5 h-5 ml-auto" />}
-                </button>
-              ))}
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50 p-0">
+          <div className={`${darkMode ? 'bg-gray-900' : 'bg-white'} rounded-t-3xl w-full max-w-md pb-8`}>
+            <div className="flex justify-center pt-3 pb-1">
+              <div className={`w-10 h-1 rounded-full ${darkMode ? 'bg-gray-600' : 'bg-gray-300'}`} />
             </div>
-            <button onClick={() => setShowLanguageMenu(false)} className={`w-full py-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              {t('cancel')}
-            </button>
+            <div className={`px-6 py-4 border-b ${darkMode ? 'border-gray-700/50' : 'border-gray-100'}`}>
+              <h2 className={`text-base font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('language')}</h2>
+            </div>
+            <div className="px-4 pt-3 space-y-1">
+              {languages.map(lang => {
+                const isSelected = language === lang.code;
+                return (
+                  <button
+                    key={lang.code}
+                    onClick={() => { setLanguage(lang.code); setShowLanguageMenu(false); }}
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all ${
+                      isSelected
+                        ? 'bg-blue-600 shadow-lg shadow-blue-500/20'
+                        : darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="text-2xl leading-none w-8">{lang.flag}</span>
+                    <span className={`flex-1 text-left font-semibold text-sm ${isSelected ? 'text-white' : darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {lang.name}
+                    </span>
+                    {isSelected && <CheckCircle className="w-5 h-5 text-white flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="px-4 mt-4">
+              <button
+                onClick={() => setShowLanguageMenu(false)}
+                className={`w-full py-3 rounded-2xl text-sm font-medium ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-600'}`}
+              >
+                {t('cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Currency Menu Modal */}
+      {showCurrencyMenu && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50 p-0">
+          <div className={`${darkMode ? 'bg-gray-900' : 'bg-white'} rounded-t-3xl w-full max-w-md pb-8`}>
+            {/* Handle bar */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className={`w-10 h-1 rounded-full ${darkMode ? 'bg-gray-600' : 'bg-gray-300'}`} />
+            </div>
+            {/* Header */}
+            <div className={`px-6 py-4 border-b ${darkMode ? 'border-gray-700/50' : 'border-gray-100'}`}>
+              <h2 className={`text-base font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('currency')}</h2>
+            </div>
+            {/* Currency list */}
+            <div className="px-4 pt-3 space-y-1">
+              {CURRENCIES.map(cur => {
+                const isSelected = currency === cur.code;
+                return (
+                  <button
+                    key={cur.code}
+                    onClick={() => { setCurrency(cur.code); setShowCurrencyMenu(false); }}
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all ${
+                      isSelected
+                        ? 'bg-blue-600 shadow-lg shadow-blue-500/20'
+                        : darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="text-2xl leading-none w-8">{cur.flag}</span>
+                    <div className="flex-1 text-left">
+                      <div className={`font-semibold text-sm ${isSelected ? 'text-white' : darkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {cur.code}
+                      </div>
+                      <div className={`text-xs mt-0.5 ${isSelected ? 'text-blue-100' : darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {cur.name}
+                      </div>
+                    </div>
+                    <span className={`text-sm font-medium tabular-nums ${isSelected ? 'text-white' : darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {cur.symbol}
+                    </span>
+                    {isSelected && <CheckCircle className="w-5 h-5 text-white flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="px-4 mt-4">
+              <button
+                onClick={() => setShowCurrencyMenu(false)}
+                className={`w-full py-3 rounded-2xl text-sm font-medium ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-600'}`}
+              >
+                {t('cancel')}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -2443,7 +2457,7 @@ function Dashboard() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center p-0 z-50">
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-t-2xl w-full max-w-md p-6 max-h-[70vh] overflow-y-auto`}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Policen PDFs exportieren</h2>
+              <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('export_modal_title')}</h2>
               <button onClick={() => setShowExportMenu(false)} className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
                 <X className="w-5 h-5" />
               </button>
@@ -2453,10 +2467,10 @@ function Dashboard() {
               <div className="text-center py-8">
                 <FileText className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
                 <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Keine PDFs vorhanden
+                  {t('no_pdfs')}
                 </p>
                 <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                  Laden Sie zuerst Policen-PDFs hoch
+                  {t('no_pdfs_sub')}
                 </p>
               </div>
             ) : (
@@ -2494,7 +2508,7 @@ function Dashboard() {
             )}
             
             <button onClick={() => setShowExportMenu(false)} className={`w-full mt-4 py-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Schliessen
+              {t('close')}
             </button>
           </div>
         </div>
@@ -2506,7 +2520,7 @@ function Dashboard() {
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto`}>
             <div className="flex items-center justify-between mb-4">
               <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Wertgegenstand hinzufügen
+                {t('add_item_title')}
               </h2>
               <button onClick={() => { setShowAddItem(false); setItemImagePreview(null); }} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5" />
@@ -2516,7 +2530,7 @@ function Dashboard() {
             <div className="space-y-4">
               <div>
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  Name des Gegenstands *
+                  {t('item_name_label')} *
                 </label>
                 <input 
                   type="text" 
@@ -2529,7 +2543,7 @@ function Dashboard() {
 
               <div>
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  Wert (CHF) *
+                  {t('item_value_label')} ({currencySymbol}) *
                 </label>
                 <input 
                   type="number" 
@@ -2542,9 +2556,9 @@ function Dashboard() {
 
               <div>
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  Kategorie *
+                  {t('item_category_label')} *
                 </label>
-                <select 
+                <select
                   value={itemCategory}
                   onChange={(e) => setItemCategory(e.target.value)}
                   className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
@@ -2562,10 +2576,10 @@ function Dashboard() {
 
               <div>
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  Kaufdatum (optional)
+                  {t('item_purchase_date_label')}
                 </label>
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   value={itemPurchaseDate}
                   onChange={(e) => setItemPurchaseDate(e.target.value)}
                   className={`w-full px-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
@@ -2574,7 +2588,7 @@ function Dashboard() {
 
               <div>
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  Foto/Quittung * (Pflichtfeld)
+                  {t('item_photo_label')} *
                 </label>
                 <div className={`border-2 border-dashed rounded-lg p-6 text-center ${darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'}`}>
                   <input
@@ -2612,7 +2626,7 @@ function Dashboard() {
                 disabled={loading || !itemImage}
                 className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
               >
-                {loading ? 'Wird gespeichert...' : 'Speichern'}
+                {loading ? t('saving') : t('save')}
               </button>
             </div>
           </div>
@@ -2626,7 +2640,7 @@ function Dashboard() {
             <div className="bg-gray-800 p-4 flex items-center justify-between rounded-t-lg">
               <div className="text-white">
                 <h3 className="font-semibold">{selectedImage.name}</h3>
-                <p className="text-sm text-gray-300">CHF {parseFloat(selectedImage.value).toLocaleString('de-CH')}</p>
+                <p className="text-sm text-gray-300">{currencySymbol} {parseFloat(selectedImage.value).toLocaleString('de-CH')}</p>
               </div>
               <button
                 onClick={() => setShowImageViewer(false)}
@@ -2662,7 +2676,7 @@ function Dashboard() {
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
                 >
                   <Download className="w-4 h-4" />
-                  Herunterladen
+                  {t('download')}
                 </a>
                 <button
                   onClick={() => setShowPDFViewer(false)}
@@ -2685,7 +2699,7 @@ function Dashboard() {
             <div className={`p-5 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
               <div className="flex items-center justify-between">
                 <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Neues Support-Ticket
+                  {t('new_ticket')}
                 </h2>
                 <button onClick={() => setShowTicketModal(false)} className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
                   <X className="w-5 h-5" />
@@ -2737,7 +2751,7 @@ function Dashboard() {
                 ) : (
                   <Send className="w-5 h-5" />
                 )}
-                Ticket absenden
+                {t('ticket_submit_btn')}
               </button>
             </form>
           </div>

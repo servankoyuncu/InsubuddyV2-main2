@@ -2,7 +2,7 @@ import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { getCategoryBreakdown, formatCurrency } from '../../services/financialService';
 
-const ExpenseBreakdown = ({ snapshot, darkMode, translations }) => {
+const ExpenseBreakdown = ({ snapshot, darkMode, translations, currencySymbol = 'CHF' }) => {
   if (!snapshot || !snapshot.byCategory || Object.keys(snapshot.byCategory).length === 0) {
     return (
       <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-6`}>
@@ -43,7 +43,7 @@ const ExpenseBreakdown = ({ snapshot, darkMode, translations }) => {
             {data.name}
           </p>
           <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-            {formatCurrency(data.value)}
+            {formatCurrency(data.value, currencySymbol)}
           </p>
           <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
             {data.payload.percentage.toFixed(1)}%
@@ -74,7 +74,7 @@ const ExpenseBreakdown = ({ snapshot, darkMode, translations }) => {
               </div>
               <div className="flex items-center gap-3">
                 <span className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {formatCurrency(item.value)}
+                  {formatCurrency(item.value, currencySymbol)}
                 </span>
                 <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} w-12 text-right`}>
                   {item.percentage.toFixed(0)}%
@@ -128,7 +128,7 @@ const ExpenseBreakdown = ({ snapshot, darkMode, translations }) => {
             {t('total')}
           </span>
           <span className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            {formatCurrency(snapshot.totalAnnual)}
+            {formatCurrency(snapshot.totalAnnual, currencySymbol)}
           </span>
         </div>
         <div className={`text-xs mt-1 text-right ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
