@@ -10,7 +10,8 @@ export const PREMIUM_FEATURES = {
   SMART_IMPORT: 'smart_import',
   ADVANCED_ANALYTICS: 'advanced_analytics',
   UNLIMITED_POLICIES: 'unlimited_policies',
-  PDF_EXPORT: 'pdf_export'
+  PDF_EXPORT: 'pdf_export',
+  AI_CHAT: 'ai_chat'
 };
 
 // Maximale Anzahl Policen für Free-Nutzer
@@ -116,15 +117,18 @@ export const hasFeatureAccess = async (userId, feature) => {
 export const getPremiumPrices = () => {
   return {
     monthly: {
-      price: 4.99,
+      price: 4.00,
+      priceFormatted: 'CHF 4.–',
       currency: 'CHF',
       period: 'Monat'
     },
     yearly: {
-      price: 39.99,
+      price: 39.00,
+      priceFormatted: 'CHF 39.–',
+      monthlyEquivalent: 'CHF 3.25',
       currency: 'CHF',
       period: 'Jahr',
-      savings: '33%'
+      savings: '2 Monate gratis'
     }
   };
 };
@@ -157,6 +161,12 @@ export const getPremiumFeatures = () => {
       name: 'PDF Export',
       description: 'Alle Policen als PDF exportieren',
       icon: 'Download'
+    },
+    {
+      id: PREMIUM_FEATURES.AI_CHAT,
+      name: 'KI-Versicherungsassistent',
+      description: 'Frage den KI-Assistenten zu deinen Policen',
+      icon: 'Sparkles'
     }
   ];
 };

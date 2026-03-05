@@ -85,6 +85,15 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  const loginWithWallet = async (accessToken, refreshToken) => {
+    const { error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+    if (error) throw error;
+    // onAuthStateChange listener above will automatically update currentUser
+  };
+
   const value = {
     currentUser,
     loading,
@@ -96,6 +105,7 @@ export const AuthProvider = ({ children }) => {
     signOut: logout,
     loginWithGoogle,
     signInWithGoogle: loginWithGoogle,
+    loginWithWallet,
     resetPassword,
     updatePassword: async (password) => {
       const { data, error } = await supabase.auth.updateUser({ password });

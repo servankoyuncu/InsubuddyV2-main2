@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Crown, Sparkles, TrendingUp, FileText, Download, Check, Star } from 'lucide-react';
 import { getPremiumPrices, getPremiumFeatures, activatePremium } from '../services/premiumService';
+import { useStoreKit } from '../hooks/useStoreKit';
 
 const PremiumModal = ({
   onClose,
@@ -9,11 +10,12 @@ const PremiumModal = ({
   onPremiumActivated,
   featureRequested = null
 }) => {
-  const [selectedPlan, setSelectedPlan] = useState('yearly');
+  const [selectedPlan, setSelectedPlan] = useState('monthly');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const prices = getPremiumPrices();
   const features = getPremiumFeatures();
+  const { purchase, restorePurchases, isNative } = useStoreKit();
 
   // Icon-Komponenten Mapping
   const iconMap = {
@@ -27,20 +29,50 @@ const PremiumModal = ({
     setIsProcessing(true);
 
     try {
-      // Für Demo/Testing: Aktiviere Premium direkt
-      // In Produktion: Hier würde der Payment-Flow starten
-      const months = selectedPlan === 'yearly' ? 12 : 1;
-      const result = await activatePremium(userId, months);
+      if (isNative) {
+        // Real App Store purchase on iOS
+        const productId = selectedPlan === 'yearly'
+          ? 'com.insubuddy.app.premium.yearly'
+          : 'com.insubuddy.app.premium.monthly';
 
-      if (result.success) {
-        onPremiumActivated?.();
-        onClose();
+        const result = await purchase(productId);
+
+        if (result.success && result.isPremium) {
+          onPremiumActivated?.();
+          onClose();
+        }
       } else {
-        alert('Fehler beim Aktivieren: ' + result.error);
+        // Web/dev: demo activation via Supabase
+        const months = selectedPlan === 'yearly' ? 12 : 1;
+        const result = await activatePremium(userId, months);
+
+        if (result.success) {
+          onPremiumActivated?.();
+          onClose();
+        } else {
+          alert('Fehler beim Aktivieren: ' + result.error);
+        }
       }
     } catch (error) {
       console.error('Fehler:', error);
       alert('Ein Fehler ist aufgetreten');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    setIsProcessing(true);
+    try {
+      const result = await restorePurchases();
+      if (result.isPremium) {
+        onPremiumActivated?.();
+        onClose();
+      } else {
+        alert('Keine aktiven Abonnements gefunden.');
+      }
+    } catch (error) {
+      console.error('Restore error:', error);
     } finally {
       setIsProcessing(false);
     }
@@ -107,47 +139,6 @@ const PremiumModal = ({
 
           {/* Pricing Options */}
           <div className="space-y-3 mb-6">
-            {/* Yearly Plan */}
-            <button
-              onClick={() => setSelectedPlan('yearly')}
-              className={`w-full p-4 rounded-xl border-2 transition-all text-left relative ${
-                selectedPlan === 'yearly'
-                  ? 'border-amber-500 bg-amber-500/10'
-                  : darkMode
-                    ? 'border-gray-700 hover:border-gray-600'
-                    : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              {prices.yearly.savings && (
-                <span className="absolute -top-2 right-4 bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {prices.yearly.savings} sparen
-                </span>
-              )}
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                    Jährlich
-                  </div>
-                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Beste Wahl
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                    CHF {prices.yearly.price}
-                  </div>
-                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    pro Jahr
-                  </div>
-                </div>
-              </div>
-              {selectedPlan === 'yearly' && (
-                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                  <Check className="w-5 h-5 text-amber-500" />
-                </div>
-              )}
-            </button>
-
             {/* Monthly Plan */}
             <button
               onClick={() => setSelectedPlan('monthly')}
@@ -170,7 +161,7 @@ const PremiumModal = ({
                 </div>
                 <div className="text-right">
                   <div className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                    CHF {prices.monthly.price}
+                    {prices.monthly.priceFormatted}
                   </div>
                   <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                     pro Monat
@@ -178,6 +169,47 @@ const PremiumModal = ({
                 </div>
               </div>
               {selectedPlan === 'monthly' && (
+                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                  <Check className="w-5 h-5 text-amber-500" />
+                </div>
+              )}
+            </button>
+
+            {/* Yearly Plan */}
+            <button
+              onClick={() => setSelectedPlan('yearly')}
+              className={`w-full p-4 rounded-xl border-2 transition-all text-left relative ${
+                selectedPlan === 'yearly'
+                  ? 'border-amber-500 bg-amber-500/10'
+                  : darkMode
+                    ? 'border-gray-700 hover:border-gray-600'
+                    : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              {prices.yearly.savings && (
+                <span className="absolute -top-2 right-4 bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  {prices.yearly.savings}
+                </span>
+              )}
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Jährlich
+                  </div>
+                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {prices.yearly.monthlyEquivalent} / Monat
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                    {prices.yearly.priceFormatted}
+                  </div>
+                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    pro Jahr
+                  </div>
+                </div>
+              </div>
+              {selectedPlan === 'yearly' && (
                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
                   <Check className="w-5 h-5 text-amber-500" />
                 </div>
@@ -204,9 +236,20 @@ const PremiumModal = ({
             )}
           </button>
 
+          {/* Restore Purchases (required by Apple) */}
+          {isNative && (
+            <button
+              onClick={handleRestore}
+              disabled={isProcessing}
+              className={`w-full text-center text-xs mt-3 py-2 ${darkMode ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'} transition-colors disabled:opacity-50`}
+            >
+              Käufe wiederherstellen
+            </button>
+          )}
+
           {/* Note */}
-          <p className={`text-center text-xs mt-4 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-            Jederzeit kündbar. Sichere Zahlung.
+          <p className={`text-center text-xs mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+            Jederzeit kündbar. Sichere Zahlung über Apple.
           </p>
         </div>
       </div>

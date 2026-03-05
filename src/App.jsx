@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { SolanaWalletProvider } from './context/WalletContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -84,6 +85,7 @@ function PushNotificationSetup() {
 function App() {
   return (
     <Router>
+      <SolanaWalletProvider>
       <LanguageProvider>
       <AuthProvider>
         <PushNotificationSetup />
@@ -122,6 +124,7 @@ function App() {
         </Suspense>
       </AuthProvider>
       </LanguageProvider>
+      </SolanaWalletProvider>
     </Router>
   );
 }

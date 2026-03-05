@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Shield, Mail, Lock, Eye, EyeOff, Loader, Globe } from 'lucide-react';
 import { handleSupabaseError } from '../supabase';
+import WalletLoginButton from '../components/WalletLoginButton';
 
 function Login() {
   const navigate = useNavigate();
@@ -132,6 +133,16 @@ function Login() {
               {t('register_link')}
             </Link>
           </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 my-6">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs text-gray-400 font-medium">oder</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          {/* Wallet Login */}
+          <WalletLoginButton onSuccess={() => navigate('/')} />
         </div>
       </div>
     </div>

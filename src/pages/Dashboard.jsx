@@ -13,6 +13,8 @@ import { supabase } from '../supabase';
 import Onboarding from '../components/Onboarding';
 import AdvisorCard from '../components/AdvisorCard';
 import { checkPremiumStatus, PREMIUM_FEATURES } from '../services/premiumService';
+import { useStoreKit } from '../hooks/useStoreKit';
+import { checkInsuBalance, shortenAddress } from '../services/solanaService';
 import { createTicket, getUserTickets } from '../services/ticketService';
 import { getOrCreateReferralCode, getReferralLink, getUserReferralStats } from '../services/referralService';
 import { getFeaturedAdvisor, getActiveAdvisors } from '../services/advisorService';
@@ -313,6 +315,7 @@ function Dashboard() {
   const { currentUser, logout } = useAuth();
   const { isAdmin } = useAdmin();
   const { t, language, setLanguage, currency, setCurrency, currencySymbol, CURRENCIES } = useLanguage();
+  const { checkPremium: checkStoreKitPremium, isNative } = useStoreKit();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [darkMode, setDarkMode] = useState(false);
@@ -451,14 +454,34 @@ function Dashboard() {
 
   // Premium Status prüfen
   useEffect(() => {
-    const checkPremium = async () => {
-      if (currentUser?.id) {
-        const { isPremium: premiumStatus } = await checkPremiumStatus(currentUser.id);
-        setIsPremium(premiumStatus);
+    const loadPremiumStatus = async () => {
+      if (!currentUser?.id) return;
+
+      let premiumStatus = false;
+
+      if (isNative) {
+        // iOS: check real Apple subscription via StoreKit 2
+        const result = await checkStoreKitPremium();
+        premiumStatus = result.isPremium;
+      } else {
+        // Web: check Supabase user metadata (demo/dev flow)
+        const result = await checkPremiumStatus(currentUser.id);
+        premiumStatus = result.isPremium;
       }
+
+      // Also check $INSU token balance (wallet login users get premium automatically)
+      if (!premiumStatus) {
+        const walletAddress = currentUser?.user_metadata?.wallet_address;
+        if (walletAddress) {
+          const { isPremium: tokenPremium } = await checkInsuBalance(walletAddress);
+          premiumStatus = tokenPremium;
+        }
+      }
+
+      setIsPremium(premiumStatus);
     };
-    checkPremium();
-  }, [currentUser?.id]);
+    loadPremiumStatus();
+  }, [currentUser?.id, isNative]);
 
   // Berater laden
   useEffect(() => {
@@ -943,23 +966,22 @@ function Dashboard() {
         </Suspense>
       )}
 
-      {/* Premium Modal - temporär deaktiviert, Code bleibt erhalten
+      {/* Premium Modal */}
       {showPremiumModal && (
         <Suspense fallback={null}>
           <PremiumModal
             onClose={() => setShowPremiumModal(false)}
             darkMode={darkMode}
             userId={currentUser?.id}
-            featureRequested={PREMIUM_FEATURES.SMART_IMPORT}
+            featureRequested={PREMIUM_FEATURES.AI_CHAT}
             onPremiumActivated={() => {
               setIsPremium(true);
               setShowPremiumModal(false);
-              setShowPolicyUploader(true);
+              setShowChat(true);
             }}
           />
         </Suspense>
       )}
-      */}
 
       {/* Kündigungsassistent Modal */}
       {showCancellationModal && selectedPolicyForCancellation && (
@@ -1704,6 +1726,11 @@ function Dashboard() {
                 <div>
                   <h2 className="text-lg font-semibold">{currentUser?.email}</h2>
                   <p className="text-sm">{t('profile_user')}</p>
+                  {currentUser?.user_metadata?.wallet_address && (
+                    <p className="text-xs mt-1 opacity-70 font-mono">
+                      🔗 {shortenAddress(currentUser.user_metadata.wallet_address)}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1984,10 +2011,15 @@ function Dashboard() {
 
       {/* KI-Chat Floating Button */}
       <button
-        onClick={() => setShowChat(true)}
+        onClick={() => isPremium ? setShowChat(true) : setShowPremiumModal(true)}
         className="fixed bottom-24 right-4 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl shadow-indigo-500/40 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform"
       >
         <MessageSquare className="w-6 h-6 text-white" />
+        {!isPremium && (
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center">
+            <Crown className="w-3 h-3 text-white" />
+          </span>
+        )}
       </button>
 
       {/* KI-Chat Modal */}
