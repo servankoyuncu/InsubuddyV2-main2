@@ -14,7 +14,13 @@
     "@capacitor/core": "^6.0.2",
     "@capacitor/ios": "^6.0.2",
     "@capacitor/push-notifications": "^6.0.5",
+    "@solana/wallet-adapter-base": "^0.9.27",
+    "@solana/wallet-adapter-phantom": "^0.9.28",
+    "@solana/wallet-adapter-react": "^0.15.39",
+    "@solana/wallet-adapter-walletconnect": "^0.1.21",
+    "@solana/web3.js": "^1.98.4",
     "@supabase/supabase-js": "^2.90.1",
+    "bs58": "^6.0.0",
     "date-fns": "^4.1.0",
     "firebase": "^12.6.0",
     "lucide-react": "^0.263.1",
@@ -23,7 +29,8 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.9.6",
     "recharts": "^3.6.0",
-    "tesseract.js": "^7.0.0"
+    "tesseract.js": "^7.0.0",
+    "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.0",
