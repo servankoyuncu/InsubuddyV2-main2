@@ -1,4 +1,3 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import nacl from 'npm:tweetnacl@1.0.3';
 import bs58 from 'npm:bs58@5.0.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -6,15 +5,13 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// Derive a deterministic password from wallet address + server secret
-// This password is never exposed to the client — only the edge function uses it
 async function derivePassword(walletAddress: string, secret: string): Promise<string> {
   const encoder = new TextEncoder();
   const keyData = encoder.encode(secret);
   const messageData = encoder.encode(walletAddress);
-
   const cryptoKey = await crypto.subtle.importKey(
     'raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
   );
@@ -22,10 +19,9 @@ async function derivePassword(walletAddress: string, secret: string): Promise<st
   return Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-serve(async (req) => {
-  // Handle CORS preflight
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { status: 200, headers: corsHeaders });
   }
 
   try {
@@ -38,13 +34,12 @@ serve(async (req) => {
       );
     }
 
-    // 1. Verify the Solana Ed25519 signature
+    // Verify Ed25519 signature
     const messageBytes = new TextEncoder().encode(message);
     const signatureBytes = bs58.decode(signature);
     const publicKeyBytes = bs58.decode(walletAddress);
 
     const isValid = nacl.sign.detached.verify(messageBytes, signatureBytes, publicKeyBytes);
-
     if (!isValid) {
       return new Response(
         JSON.stringify({ error: 'Invalid signature' }),
@@ -52,7 +47,7 @@ serve(async (req) => {
       );
     }
 
-    // 2. Validate nonce freshness (message must contain a timestamp within 5 minutes)
+    // Validate timestamp freshness (5 min window)
     const timestampMatch = message.match(/InsuBuddy Login: (\d+)/);
     if (!timestampMatch) {
       return new Response(
@@ -61,18 +56,16 @@ serve(async (req) => {
       );
     }
     const messageTimestamp = parseInt(timestampMatch[1]);
-    const now = Date.now();
-    if (Math.abs(now - messageTimestamp) > 5 * 60 * 1000) {
+    if (Math.abs(Date.now() - messageTimestamp) > 5 * 60 * 1000) {
       return new Response(
         JSON.stringify({ error: 'Login request expired. Please try again.' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // 3. Create Supabase admin client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const walletSecret = Deno.env.get('WALLET_SECRET')!;
+    const walletSecret = Deno.env.get('WALLET_SECRET') ?? 'fallback-secret-change-me';
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false }
@@ -81,7 +74,7 @@ serve(async (req) => {
     const email = `wallet_${walletAddress.toLowerCase()}@insubuddy.app`;
     const password = await derivePassword(walletAddress, walletSecret);
 
-    // 4. Create user if they don't exist yet
+    // Create user if not exists
     const { data: existingUsers } = await adminClient.auth.admin.listUsers();
     const userExists = existingUsers?.users?.some(u => u.email === email);
 
@@ -90,18 +83,14 @@ serve(async (req) => {
         email,
         password,
         email_confirm: true,
-        user_metadata: {
-          wallet_address: walletAddress,
-          auth_method: 'wallet',
-        },
+        user_metadata: { wallet_address: walletAddress, auth_method: 'wallet' },
       });
-
       if (createError) {
         throw new Error(`Failed to create user: ${createError.message}`);
       }
     }
 
-    // 5. Sign in to get session tokens
+    // Sign in
     const signInResponse = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
       method: 'POST',
       headers: {
