@@ -472,6 +472,7 @@ function Dashboard() {
       // Also check $INSU token balance (wallet login users get premium automatically)
       if (!premiumStatus) {
         const walletAddress = currentUser?.user_metadata?.wallet_address;
+        console.log('[Dashboard] wallet_address from user_metadata:', walletAddress);
         if (walletAddress) {
           const { isPremium: tokenPremium } = await checkInsuBalance(walletAddress);
           premiumStatus = tokenPremium;
