@@ -7,6 +7,7 @@ import { supabase } from '../supabase';
 import bs58 from 'bs58';
 
 const SUPABASE_FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export default function WalletLoginButton({ onSuccess, darkMode = false }) {
   const { publicKey, connected, connecting, connect, disconnect, select, wallets, signMessage } = useWallet();
@@ -64,7 +65,11 @@ export default function WalletLoginButton({ onSuccess, darkMode = false }) {
       // Call the edge function
       const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/wallet-auth`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        },
         body: JSON.stringify({
           walletAddress,
           message,
