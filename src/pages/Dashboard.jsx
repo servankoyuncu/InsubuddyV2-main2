@@ -2318,11 +2318,8 @@ function Dashboard() {
 
       {/* Language Menu Modal */}
       {showLanguageMenu && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50 p-0">
-          <div className={`${darkMode ? 'bg-gray-900' : 'bg-white'} rounded-t-3xl w-full max-w-md pb-8`}>
-            <div className="flex justify-center pt-3 pb-1">
-              <div className={`w-10 h-1 rounded-full ${darkMode ? 'bg-gray-600' : 'bg-gray-300'}`} />
-            </div>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className={`${darkMode ? 'bg-gray-900' : 'bg-white'} rounded-3xl w-full max-w-sm pb-4`}>
             <div className={`px-6 py-4 border-b ${darkMode ? 'border-gray-700/50' : 'border-gray-100'}`}>
               <h2 className={`text-base font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('language')}</h2>
             </div>
@@ -2362,12 +2359,8 @@ function Dashboard() {
 
       {/* Currency Menu Modal */}
       {showCurrencyMenu && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50 p-0">
-          <div className={`${darkMode ? 'bg-gray-900' : 'bg-white'} rounded-t-3xl w-full max-w-md pb-8`}>
-            {/* Handle bar */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className={`w-10 h-1 rounded-full ${darkMode ? 'bg-gray-600' : 'bg-gray-300'}`} />
-            </div>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className={`${darkMode ? 'bg-gray-900' : 'bg-white'} rounded-3xl w-full max-w-sm pb-4`}>
             {/* Header */}
             <div className={`px-6 py-4 border-b ${darkMode ? 'border-gray-700/50' : 'border-gray-100'}`}>
               <h2 className={`text-base font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('currency')}</h2>

@@ -145,14 +145,9 @@ export default function WalletLoginButton({ onSuccess, darkMode = false }) {
 
       {/* Wallet picker modal */}
       {showWalletPicker && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center p-0">
-          <div className={`w-full max-w-md rounded-t-3xl pb-8 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
-            {/* Handle bar */}
-            <div className="flex justify-center pt-3 pb-4">
-              <div className={`w-10 h-1 rounded-full ${darkMode ? 'bg-gray-700' : 'bg-gray-300'}`} />
-            </div>
-
-            <h3 className={`text-center font-semibold text-lg mb-4 px-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`w-full max-w-sm rounded-3xl pb-4 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+            <h3 className={`text-center font-semibold text-lg mt-4 mb-4 px-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
               Wallet auswählen
             </h3>
 
