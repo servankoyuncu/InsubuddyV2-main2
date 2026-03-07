@@ -997,9 +997,9 @@ function Dashboard() {
         />
       )}
 
-      {/* Top Navigation — pill style */}
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-lg">
-        <div className="flex items-center justify-between px-3 py-2.5 rounded-full shadow-2xl border backdrop-blur-xl" style={{ backgroundColor: '#0a1628', borderColor: '#1e3a5f', boxShadow: '0 8px 32px rgba(10, 22, 40, 0.6)' }}>
+      {/* Top Navigation — fixed full width */}
+      <div className="fixed top-0 left-0 right-0 z-50 border-b backdrop-blur-xl" style={{ backgroundColor: '#0a1628', borderColor: '#1e3a5f' }}>
+        <div className="flex items-center justify-between px-4 pt-safe pb-3 pt-3 max-w-4xl mx-auto">
           <div className="flex items-center gap-2 pl-1">
             <img src="/icons/appstore.png" alt="InsuBuddy" className="w-7 h-7 rounded-lg" />
             <span className="text-sm font-semibold text-white">{t('app_title')}</span>
