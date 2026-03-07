@@ -1021,9 +1021,6 @@ function Dashboard() {
                 </span>
               )}
             </button>
-            <button onClick={() => setDarkMode(!darkMode)} className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
             <button onClick={() => setActiveTab('profile')} className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} ${activeTab === 'profile' ? 'ring-2 ring-blue-500' : ''}`}>
               <User className="w-5 h-5" />
             </button>
@@ -2058,27 +2055,34 @@ function Dashboard() {
         </div>
       )}
 
-      <div className={`fixed bottom-4 left-2 right-2 z-50 ${darkMode ? 'bg-gray-800/90 border-gray-700/50' : 'bg-white/90 border-gray-200/50'} backdrop-blur-xl border rounded-3xl shadow-2xl shadow-blue-500/20 px-2 py-2 animate-slideInFromBottom`}>
-        <div className="max-w-4xl mx-auto flex justify-around">
-          <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center gap-0.5 py-1.5 px-1 min-w-0 flex-1 ${activeTab === 'dashboard' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            <Home className="w-5 h-5" />
-            <span className="text-[10px] truncate">{t('tab_overview')}</span>
-          </button>
-          <button onClick={() => setActiveTab('policies')} className={`flex flex-col items-center gap-0.5 py-1.5 px-1 min-w-0 flex-1 ${activeTab === 'policies' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            <FileText className="w-5 h-5" />
-            <span className="text-[10px] truncate">{t('tab_policies')}</span>
-          </button>
-          <button onClick={() => setActiveTab('vault')} className={`flex flex-col items-center gap-0.5 py-1.5 px-1 min-w-0 flex-1 ${activeTab === 'vault' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            <Camera className="w-5 h-5" />
-            <span className="text-[10px] truncate">{t('tab_vault')}</span>
-          </button>
-          <button onClick={() => setActiveTab('finances')} className={`flex flex-col items-center gap-0.5 py-1.5 px-1 min-w-0 flex-1 ${activeTab === 'finances' ? 'text-green-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            <TrendingUp className="w-5 h-5" />
-            <span className="text-[10px] truncate">{t('tab_finances')}</span>
-          </button>
-          <button onClick={() => setActiveTab('advisors')} className={`flex flex-col items-center gap-0.5 py-1.5 px-1 min-w-0 flex-1 ${activeTab === 'advisors' ? 'text-blue-600' : darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            <Users className="w-5 h-5" />
-            <span className="text-[10px] truncate">{t('tab_advisors')}</span>
+      {/* Bottom Navigation — pill style */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slideInFromBottom">
+        <div className={`flex items-center gap-1 px-3 py-3 rounded-full shadow-2xl border ${darkMode ? 'bg-gray-900/95 border-gray-700/60 shadow-black/50' : 'bg-gray-900/95 border-gray-700/60 shadow-black/30'} backdrop-blur-xl`}>
+          {[
+            { id: 'dashboard', icon: <Home className="w-5 h-5" /> },
+            { id: 'policies', icon: <FileText className="w-5 h-5" /> },
+            { id: 'vault', icon: <Camera className="w-5 h-5" /> },
+            { id: 'finances', icon: <TrendingUp className="w-5 h-5" /> },
+            { id: 'advisors', icon: <Users className="w-5 h-5" /> },
+          ].map(({ id, icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`w-11 h-11 flex items-center justify-center rounded-full transition-all duration-200 ${
+                activeTab === id
+                  ? 'bg-white/15 text-white'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              {icon}
+            </button>
+          ))}
+          <div className="w-px h-6 bg-gray-700 mx-1" />
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="w-11 h-11 flex items-center justify-center rounded-full text-gray-500 hover:text-gray-300 transition-all duration-200"
+          >
+            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
         </div>
       </div>
