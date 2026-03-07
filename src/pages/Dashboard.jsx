@@ -997,38 +997,39 @@ function Dashboard() {
         />
       )}
 
-      <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl border-b px-4 pt-14 pb-4`}>
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src="/icons/appstore.png" alt="InsuBuddy" className="w-9 h-9 rounded-lg" />
-            <span className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('app_title')}</span>
+      {/* Top Navigation — pill style */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-lg">
+        <div className="flex items-center justify-between px-3 py-2.5 rounded-full shadow-2xl border backdrop-blur-xl" style={{ backgroundColor: '#0a1628', borderColor: '#1e3a5f', boxShadow: '0 8px 32px rgba(10, 22, 40, 0.6)' }}>
+          <div className="flex items-center gap-2 pl-1">
+            <img src="/icons/appstore.png" alt="InsuBuddy" className="w-7 h-7 rounded-lg" />
+            <span className="text-sm font-semibold text-white">{t('app_title')}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setShowExportMenu(true)} className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-              <Download className="w-5 h-5" />
+          <div className="flex items-center gap-1">
+            <button onClick={() => setShowExportMenu(true)} className="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-all">
+              <Download className="w-4 h-4" />
             </button>
-            <button onClick={() => setShowLanguageMenu(true)} className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-              <Globe className="w-5 h-5" />
+            <button onClick={() => setShowLanguageMenu(true)} className="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-all">
+              <Globe className="w-4 h-4" />
             </button>
-            <button onClick={() => setShowCurrencyMenu(true)} className={`px-2 py-1.5 rounded-lg text-xs font-semibold ${darkMode ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-700'}`}>
+            <button onClick={() => setShowCurrencyMenu(true)} className="px-2 py-1 rounded-full text-xs font-semibold text-gray-400 hover:text-white hover:bg-white/10 transition-all">
               {currency}
             </button>
-            <button onClick={() => setShowNotifications(true)} className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} relative`}>
-              <Bell className="w-5 h-5" />
+            <button onClick={() => setShowNotifications(true)} className="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-all relative">
+              <Bell className="w-4 h-4" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center">
                   {unreadCount}
                 </span>
               )}
             </button>
-            <button onClick={() => setActiveTab('profile')} className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} ${activeTab === 'profile' ? 'ring-2 ring-blue-500' : ''}`}>
-              <User className="w-5 h-5" />
+            <button onClick={() => setActiveTab('profile')} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all ${activeTab === 'profile' ? 'bg-white/15 text-white' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}>
+              <User className="w-4 h-4" />
             </button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-4 pb-32">
+      <div className="max-w-4xl mx-auto p-4 pt-24 pb-32">
         {activeTab === 'dashboard' && (
           <div className="space-y-6 animate-fadeIn">
             <div className="grid grid-cols-3 gap-4">
