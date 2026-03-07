@@ -2057,7 +2057,7 @@ function Dashboard() {
 
       {/* Bottom Navigation — pill style */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slideInFromBottom">
-        <div className={`flex items-center gap-1 px-3 py-3 rounded-full shadow-2xl border ${darkMode ? 'bg-gray-900/95 border-gray-700/60 shadow-black/50' : 'bg-gray-900/95 border-gray-700/60 shadow-black/30'} backdrop-blur-xl`}>
+        <div className="flex items-center gap-1 px-3 py-3 rounded-full shadow-2xl border backdrop-blur-xl" style={{ backgroundColor: '#0a1628', borderColor: '#1e3a5f', boxShadow: '0 8px 32px rgba(10, 22, 40, 0.6)' }}>
           {[
             { id: 'dashboard', icon: <Home className="w-5 h-5" /> },
             { id: 'policies', icon: <FileText className="w-5 h-5" /> },
