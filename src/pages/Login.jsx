@@ -48,9 +48,7 @@ function Login() {
 
         {/* Logo & Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
-            <Shield className="w-8 h-8 text-white" />
-          </div>
+          <img src="/icons/appstore.png" alt="InsuBuddy" className="w-16 h-16 rounded-2xl mb-4 mx-auto shadow-lg" />
           <h1 className="text-3xl font-bold text-gray-900 mb-2">InsuBuddy</h1>
           <p className="text-gray-600">{t('welcome_back')}</p>
         </div>
