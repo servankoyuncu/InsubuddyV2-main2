@@ -247,9 +247,14 @@ const PremiumModal = ({
             </button>
           )}
 
-          {/* Note */}
+          {/* Note + Legal links */}
           <p className={`text-center text-xs mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
             Jederzeit kündbar. Sichere Zahlung über Apple.
+          </p>
+          <p className={`text-center text-xs mt-2 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:opacity-70">Datenschutz</a>
+            {' · '}
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline hover:opacity-70">Nutzungsbedingungen</a>
           </p>
         </div>
       </div>
