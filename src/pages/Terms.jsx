@@ -67,7 +67,7 @@ export default function Terms() {
 
           <section>
             <h2 className="font-semibold text-gray-900 mb-2">9. Kontakt</h2>
-            <p>support@insubuddy.app</p>
+            <p>info@insubuddy.com</p>
           </section>
         </div>
       </div>

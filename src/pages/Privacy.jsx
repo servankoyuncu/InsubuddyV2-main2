@@ -22,7 +22,7 @@ export default function Privacy() {
         <div className="space-y-6 text-gray-700 text-sm leading-relaxed">
           <section>
             <h2 className="font-semibold text-gray-900 mb-2">1. Verantwortliche Stelle</h2>
-            <p>Verantwortlich für die Datenverarbeitung in der App InsuBuddy ist Servan Koyuncu, Schweiz. Kontakt: support@insubuddy.app</p>
+            <p>Verantwortlich für die Datenverarbeitung in der App InsuBuddy ist Servan Koyuncu, Schweiz. Kontakt: info@insubuddy.com</p>
           </section>
 
           <section>
@@ -59,12 +59,12 @@ export default function Privacy() {
 
           <section>
             <h2 className="font-semibold text-gray-900 mb-2">7. Ihre Rechte</h2>
-            <p>Sie haben das Recht auf Auskunft, Berichtigung und Löschung Ihrer Daten. Zur Löschung Ihres Kontos nutzen Sie die Funktion «Konto löschen» in den Einstellungen oder kontaktieren Sie uns unter support@insubuddy.app.</p>
+            <p>Sie haben das Recht auf Auskunft, Berichtigung und Löschung Ihrer Daten. Zur Löschung Ihres Kontos nutzen Sie die Funktion «Konto löschen» in den Einstellungen oder kontaktieren Sie uns unter info@insubuddy.com.</p>
           </section>
 
           <section>
             <h2 className="font-semibold text-gray-900 mb-2">8. Kontakt</h2>
-            <p>Bei Fragen zum Datenschutz: support@insubuddy.app</p>
+            <p>Bei Fragen zum Datenschutz: info@insubuddy.com</p>
           </section>
         </div>
       </div>
