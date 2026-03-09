@@ -1758,14 +1758,14 @@ function Dashboard() {
                       🔗 {shortenAddress(currentUser.user_metadata.wallet_address)}
                     </p>
                   )}
-                  {activeStake && (
+                  {(activeStake || isAdmin) && (
                     <div className="flex items-center gap-1.5 mt-2">
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-400 text-amber-900">
                         <Crown className="w-3 h-3" />
                         $INSU Staker
                       </span>
                       <span className="text-xs opacity-60">
-                        bis {new Date(activeStake.expires_at).toLocaleDateString('de-CH')}
+                        {activeStake ? `bis ${new Date(activeStake.expires_at).toLocaleDateString('de-CH')}` : 'Admin Preview'}
                       </span>
                     </div>
                   )}
