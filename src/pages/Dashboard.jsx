@@ -15,7 +15,7 @@ import AdvisorCard from '../components/AdvisorCard';
 import { checkPremiumStatus, PREMIUM_FEATURES } from '../services/premiumService';
 import { useStoreKit } from '../hooks/useStoreKit';
 import { checkInsuBalance, shortenAddress } from '../services/solanaService';
-import { hasActiveStake } from '../services/stakingService';
+import { getActiveStakes } from '../services/stakingService';
 import { createTicket, getUserTickets } from '../services/ticketService';
 import { getOrCreateReferralCode, getReferralLink, getUserReferralStats } from '../services/referralService';
 import { getFeaturedAdvisor, getActiveAdvisors } from '../services/advisorService';
@@ -331,6 +331,7 @@ function Dashboard() {
   const [showPDFViewer, setShowPDFViewer] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showStakingModal, setShowStakingModal] = useState(false);
+  const [activeStake, setActiveStake] = useState(null);
   const [selectedPDF, setSelectedPDF] = useState(null);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showImageViewer, setShowImageViewer] = useState(false);
@@ -482,8 +483,10 @@ function Dashboard() {
       }
 
       // Check active $INSU stakes
-      if (!premiumStatus) {
-        premiumStatus = await hasActiveStake(currentUser.id);
+      const stakes = await getActiveStakes(currentUser.id);
+      if (stakes.length > 0) {
+        setActiveStake(stakes[0]);
+        premiumStatus = true;
       }
 
       setIsPremium(premiumStatus);
@@ -998,9 +1001,11 @@ function Dashboard() {
             onClose={() => setShowStakingModal(false)}
             userId={currentUser?.id}
             walletAddress={currentUser?.user_metadata?.wallet_address}
-            onSuccess={() => {
+            onSuccess={async () => {
               setIsPremium(true);
               setShowStakingModal(false);
+              const stakes = await getActiveStakes(currentUser?.id);
+              if (stakes.length > 0) setActiveStake(stakes[0]);
             }}
             darkMode={darkMode}
           />
@@ -1752,6 +1757,24 @@ function Dashboard() {
                     <p className="text-xs mt-1 opacity-70 font-mono">
                       🔗 {shortenAddress(currentUser.user_metadata.wallet_address)}
                     </p>
+                  )}
+                  {activeStake && (
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-400 text-amber-900">
+                        <Crown className="w-3 h-3" />
+                        $INSU Staker
+                      </span>
+                      <span className="text-xs opacity-60">
+                        bis {new Date(activeStake.expires_at).toLocaleDateString('de-CH')}
+                      </span>
+                    </div>
+                  )}
+                  {!activeStake && currentUser?.user_metadata?.wallet_address && isPremium && (
+                    <div className="mt-2">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/20 text-white">
+                        💎 $INSU Holder
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>

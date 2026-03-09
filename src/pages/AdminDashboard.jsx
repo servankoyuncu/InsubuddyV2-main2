@@ -106,6 +106,9 @@ function AdminDashboard() {
   const [ticketReply, setTicketReply] = useState('');
   const [ticketStatus, setTicketStatus] = useState('open');
 
+  // Stakes State
+  const [stakes, setStakes] = useState([]);
+
   const notificationTypes = [
     { value: 'info', label: 'Info', icon: InfoIcon, color: 'blue' },
     { value: 'success', label: 'Erfolg', icon: CheckCircle, color: 'green' },
@@ -155,6 +158,13 @@ function AdminDashboard() {
       // 5b. Ausstehende Berater-Bewerbungen laden
       const pending = await getPendingAdvisors();
       setPendingAdvisors(pending);
+
+      // 5c. Alle Stakes laden
+      const { data: stakesData } = await supabase
+        .from('insu_stakes')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (stakesData) setStakes(stakesData);
 
       // 6. Push Notification Log laden
       const { data: pushLogData } = await supabase
@@ -545,6 +555,14 @@ function AdminDashboard() {
               {pendingAdvisors.length > 0 && (
                 <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-orange-500 rounded-full">
                   {pendingAdvisors.length}
+                </span>
+              )}
+            </button>
+            <button onClick={() => setActiveTab('stakes')} className={`pb-3 px-2 font-medium text-sm transition-colors relative ${activeTab === 'stakes' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
+              $INSU Stakes
+              {stakes.filter(s => s.status !== 'refunded' && new Date(s.expires_at) < new Date()).length > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-purple-500 rounded-full">
+                  {stakes.filter(s => s.status !== 'refunded' && new Date(s.expires_at) < new Date()).length}
                 </span>
               )}
             </button>
@@ -1356,6 +1374,99 @@ function AdminDashboard() {
       {/* ============================================================ */}
       {/* EINREICHUNGEN TAB                                            */}
       {/* ============================================================ */}
+      {/* ============================================================ */}
+      {/* STAKES TAB                                                   */}
+      {/* ============================================================ */}
+      {activeTab === 'stakes' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-base font-semibold text-gray-800">$INSU Token Stakes</h2>
+            <span className="text-xs text-gray-500">{stakes.length} total</span>
+          </div>
+
+          {stakes.length === 0 && (
+            <div className="text-center py-16 text-gray-400">
+              <p className="text-sm">Noch keine Stakes vorhanden</p>
+            </div>
+          )}
+
+          {/* Abgelaufene Stakes (Refund ausstehend) */}
+          {stakes.filter(s => s.status !== 'refunded' && new Date(s.expires_at) < new Date()).length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-red-600 mb-2">⚠️ Refund ausstehend</h3>
+              {stakes
+                .filter(s => s.status !== 'refunded' && new Date(s.expires_at) < new Date())
+                .map(stake => (
+                  <div key={stake.id} className="bg-white rounded-2xl shadow-sm border border-red-100 p-4 mb-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-mono text-sm text-gray-800 truncate">{stake.wallet_address}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {(stake.amount_insu / 1_000_000).toFixed(1)}M $INSU · {stake.duration_months} Monate
+                        </p>
+                        <p className="text-xs text-red-500 mt-0.5">
+                          Abgelaufen: {new Date(stake.expires_at).toLocaleDateString('de-CH')}
+                        </p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          await supabase.from('insu_stakes').update({ status: 'refunded' }).eq('id', stake.id);
+                          setStakes(prev => prev.map(s => s.id === stake.id ? { ...s, status: 'refunded' } : s));
+                        }}
+                        className="flex-shrink-0 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-lg transition-colors"
+                      >
+                        Als refunded markieren
+                      </button>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-gray-100">
+                      <p className="text-xs text-gray-400 font-mono truncate">TX: {stake.tx_signature}</p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+
+          {/* Aktive Stakes */}
+          {stakes.filter(s => s.status === 'active' && new Date(s.expires_at) >= new Date()).length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-green-600 mb-2">✅ Aktive Stakes</h3>
+              {stakes
+                .filter(s => s.status === 'active' && new Date(s.expires_at) >= new Date())
+                .map(stake => (
+                  <div key={stake.id} className="bg-white rounded-2xl shadow-sm border border-green-100 p-4 mb-3">
+                    <p className="font-mono text-sm text-gray-800 truncate">{stake.wallet_address}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-xs text-gray-500">
+                        {(stake.amount_insu / 1_000_000).toFixed(1)}M $INSU · {stake.duration_months} Monate
+                      </p>
+                      <p className="text-xs text-green-600">
+                        bis {new Date(stake.expires_at).toLocaleDateString('de-CH')}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+
+          {/* Bereits refunded */}
+          {stakes.filter(s => s.status === 'refunded').length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-400 mb-2">↩️ Bereits refunded</h3>
+              {stakes
+                .filter(s => s.status === 'refunded')
+                .map(stake => (
+                  <div key={stake.id} className="bg-gray-50 rounded-2xl border border-gray-100 p-4 mb-3 opacity-60">
+                    <p className="font-mono text-sm text-gray-600 truncate">{stake.wallet_address}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {(stake.amount_insu / 1_000_000).toFixed(1)}M $INSU · abgelaufen {new Date(stake.expires_at).toLocaleDateString('de-CH')}
+                    </p>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {activeTab === 'submissions' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-2">
