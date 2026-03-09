@@ -15,6 +15,7 @@ import AdvisorCard from '../components/AdvisorCard';
 import { checkPremiumStatus, PREMIUM_FEATURES } from '../services/premiumService';
 import { useStoreKit } from '../hooks/useStoreKit';
 import { checkInsuBalance, shortenAddress } from '../services/solanaService';
+import { hasActiveStake } from '../services/stakingService';
 import { createTicket, getUserTickets } from '../services/ticketService';
 import { getOrCreateReferralCode, getReferralLink, getUserReferralStats } from '../services/referralService';
 import { getFeaturedAdvisor, getActiveAdvisors } from '../services/advisorService';
@@ -25,6 +26,7 @@ const PolicyUploader = lazy(() => import('../components/PolicyUploader'));
 const PremiumModal = lazy(() => import('../components/PremiumModal'));
 const PDFViewer = lazy(() => import('../components/PDFViewer'));
 const PolicyChat = lazy(() => import('../components/PolicyChat'));
+const StakingModal = lazy(() => import('../components/StakingModal'));
 
 // Deckungen-Templates mit detaillierten Beschreibungen
 const coverageTemplates = {
@@ -328,6 +330,7 @@ function Dashboard() {
   const [showAddPolicy, setShowAddPolicy] = useState(false);
   const [showPDFViewer, setShowPDFViewer] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showStakingModal, setShowStakingModal] = useState(false);
   const [selectedPDF, setSelectedPDF] = useState(null);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showImageViewer, setShowImageViewer] = useState(false);
@@ -469,14 +472,18 @@ function Dashboard() {
         premiumStatus = result.isPremium;
       }
 
-      // Also check $INSU token balance (wallet login users get premium automatically)
+      // Check $INSU token balance
       if (!premiumStatus) {
         const walletAddress = currentUser?.user_metadata?.wallet_address;
-        console.log('[Dashboard] wallet_address from user_metadata:', walletAddress);
         if (walletAddress) {
           const { isPremium: tokenPremium } = await checkInsuBalance(walletAddress);
           premiumStatus = tokenPremium;
         }
+      }
+
+      // Check active $INSU stakes
+      if (!premiumStatus) {
+        premiumStatus = await hasActiveStake(currentUser.id);
       }
 
       setIsPremium(premiumStatus);
@@ -980,6 +987,22 @@ function Dashboard() {
               setShowPremiumModal(false);
               setShowChat(true);
             }}
+          />
+        </Suspense>
+      )}
+
+      {/* Staking Modal */}
+      {showStakingModal && (
+        <Suspense fallback={null}>
+          <StakingModal
+            onClose={() => setShowStakingModal(false)}
+            userId={currentUser?.id}
+            walletAddress={currentUser?.user_metadata?.wallet_address}
+            onSuccess={() => {
+              setIsPremium(true);
+              setShowStakingModal(false);
+            }}
+            darkMode={darkMode}
           />
         </Suspense>
       )}
@@ -1958,6 +1981,46 @@ function Dashboard() {
                 )}
               </div>
             </div>
+
+            {/* $INSU Token Staking */}
+            {currentUser?.user_metadata?.wallet_address && (
+              <div className={`${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} backdrop-blur-xl rounded-2xl shadow-lg shadow-blue-500/10 border overflow-hidden`}>
+                <div className="bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-600 p-4 text-white shadow-lg shadow-purple-500/20">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                      <Crown className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">$INSU Token staken</h3>
+                      <p className="text-sm text-purple-100">Premium durch Token-Staking freischalten</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4">
+                  <p className={`text-sm mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    Sende $INSU Token an die Staking-Wallet und erhalte Premium ohne monatliche Zahlung.
+                  </p>
+                  <div className={`space-y-2 mb-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    <div className="flex justify-between">
+                      <span>1'000'000 $INSU</span><span className="font-medium">→ 1 Monat Premium</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>2'000'000 $INSU</span><span className="font-medium">→ 3 Monate Premium</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>3'000'000 $INSU</span><span className="font-medium">→ 12 Monate Premium</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowStakingModal(true)}
+                    className="w-full py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                  >
+                    <Crown className="w-5 h-5" />
+                    Jetzt staken
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Admin-Bereich */}
             {isAdmin && (
