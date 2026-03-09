@@ -450,3 +450,76 @@ export const getTopicLabel = (topicId) => {
   const topic = ADVISOR_TOPICS.find(t => t.id === topicId);
   return topic ? topic.label : topicId;
 };
+
+/**
+ * Broker-Portal: Bewerbung einreichen (status: 'pending', active: false)
+ */
+export const submitAdvisorApplication = async (formData) => {
+  try {
+    const { data, error } = await supabase
+      .from('advisors')
+      .insert([{ ...formData, status: 'pending', active: false, verified: false, featured: false }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error) {
+    console.error('Fehler beim Einreichen der Bewerbung:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Alle ausstehenden Bewerbungen laden (Admin)
+ */
+export const getPendingAdvisors = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('advisors')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Fehler beim Laden der Bewerbungen:', error);
+    return [];
+  }
+};
+
+/**
+ * Bewerbung freigeben (Admin)
+ */
+export const approveAdvisor = async (advisorId) => {
+  return await updateAdvisor(advisorId, { status: 'approved', active: true });
+};
+
+/**
+ * Bewerbung ablehnen (Admin)
+ */
+export const rejectAdvisor = async (advisorId, reason = '') => {
+  return await updateAdvisor(advisorId, { status: 'rejected', active: false, rejection_reason: reason });
+};
+
+/**
+ * getActiveAdvisors mit status-Filter (approved)
+ */
+export const getApprovedAdvisors = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('advisors')
+      .select('*')
+      .eq('active', true)
+      .eq('status', 'approved')
+      .order('featured', { ascending: false })
+      .order('display_order', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Fehler beim Laden der Berater:', error);
+    return [];
+  }
+};

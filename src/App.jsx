@@ -16,6 +16,7 @@ const AccountDeleted = lazy(() => import('./pages/Accountdeleted'));
 const ShareView = lazy(() => import('./pages/ShareView'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Terms = lazy(() => import('./pages/Terms'));
+const BrokerPortal = lazy(() => import('./pages/BrokerPortal'));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -123,6 +124,7 @@ function App() {
           <Route path="/share/:code" element={<ShareView />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/broker" element={<BrokerPortal />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </Suspense>

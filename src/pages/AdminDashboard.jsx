@@ -8,7 +8,7 @@ import {
   Image as ImageIcon, Save, X, Bell, AlertCircle, CheckCircle, Info as InfoIcon,
   Users, FileText, Briefcase, UserCheck, Phone, Mail, MessageCircle, Star, Globe,
   MapPin, BadgeCheck, Home, Car, Building, Heart, Stethoscope, PiggyBank, Gift,
-  Send, Smartphone
+  Send, Smartphone, ClipboardList
 } from 'lucide-react';
 import {
   getAllAdvisors,
@@ -17,6 +17,9 @@ import {
   deleteAdvisor,
   toggleAdvisorStatus,
   toggleAdvisorFeatured,
+  getPendingAdvisors,
+  approveAdvisor,
+  rejectAdvisor,
   ADVISOR_TOPICS,
   SWISS_CANTONS
 } from '../services/advisorService';
@@ -30,6 +33,8 @@ function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('partners');
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pendingAdvisors, setPendingAdvisors] = useState([]);
+  const [rejectReason, setRejectReason] = useState({});
   
   // Stats State
   const [stats, setStats] = useState({
@@ -146,6 +151,10 @@ function AdminDashboard() {
       // 5. Tickets laden
       const ticketsData = await getAllTickets();
       setTickets(ticketsData);
+
+      // 5b. Ausstehende Berater-Bewerbungen laden
+      const pending = await getPendingAdvisors();
+      setPendingAdvisors(pending);
 
       // 6. Push Notification Log laden
       const { data: pushLogData } = await supabase
@@ -530,6 +539,14 @@ function AdminDashboard() {
             <button onClick={() => setActiveTab('push')} className={`pb-3 px-2 font-medium text-sm transition-colors flex items-center gap-1.5 ${activeTab === 'push' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
               <Smartphone className="w-4 h-4" />
               Push senden
+            </button>
+            <button onClick={() => setActiveTab('submissions')} className={`pb-3 px-2 font-medium text-sm transition-colors relative ${activeTab === 'submissions' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
+              Einreichungen
+              {pendingAdvisors.length > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-orange-500 rounded-full">
+                  {pendingAdvisors.length}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -1333,6 +1350,96 @@ function AdminDashboard() {
               <p className="text-sm">Noch keine Push-Notifications gesendet</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* EINREICHUNGEN TAB                                            */}
+      {/* ============================================================ */}
+      {activeTab === 'submissions' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-base font-semibold text-gray-800">Ausstehende Berater-Bewerbungen</h2>
+            <a href="/broker" target="_blank" rel="noopener noreferrer"
+              className="text-xs text-blue-600 hover:underline">
+              Broker-Portal öffnen ↗
+            </a>
+          </div>
+
+          {pendingAdvisors.length === 0 && (
+            <div className="text-center py-16 text-gray-400">
+              <UserCheck className="w-10 h-10 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">Keine ausstehenden Bewerbungen</p>
+            </div>
+          )}
+
+          {pendingAdvisors.map(advisor => (
+            <div key={advisor.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <div className="flex items-start gap-4">
+                {advisor.photo ? (
+                  <img src={advisor.photo} alt={advisor.name}
+                    className="w-14 h-14 rounded-xl object-cover flex-shrink-0 bg-gray-100" />
+                ) : (
+                  <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <Users className="w-6 h-6 text-gray-400" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{advisor.name}</h3>
+                      <p className="text-sm text-gray-500">{advisor.title} · {advisor.company}</p>
+                    </div>
+                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full flex-shrink-0">Ausstehend</span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-500">
+                    {advisor.email && <span>✉ {advisor.email}</span>}
+                    {advisor.phone && <span>📞 {advisor.phone}</span>}
+                    {advisor.city && <span>📍 {advisor.city}, {advisor.canton}</span>}
+                    {advisor.languages?.length > 0 && <span>🌐 {advisor.languages.join(', ')}</span>}
+                  </div>
+                  {advisor.bio && <p className="mt-2 text-xs text-gray-600 line-clamp-2">{advisor.bio}</p>}
+                  {advisor.topics?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {advisor.topics.map(t => (
+                        <span key={t} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
+                          {ADVISOR_TOPICS.find(at => at.id === t)?.label || t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Ablehnen mit Begründung */}
+              <div className="mt-4 border-t border-gray-100 pt-4 space-y-2">
+                <input
+                  placeholder="Ablehnungsgrund (optional)"
+                  value={rejectReason[advisor.id] || ''}
+                  onChange={e => setRejectReason(prev => ({ ...prev, [advisor.id]: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-300"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      await approveAdvisor(advisor.id);
+                      setPendingAdvisors(prev => prev.filter(a => a.id !== advisor.id));
+                    }}
+                    className="flex-1 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                    <CheckCircle className="w-4 h-4" /> Freigeben
+                  </button>
+                  <button
+                    onClick={async () => {
+                      await rejectAdvisor(advisor.id, rejectReason[advisor.id] || '');
+                      setPendingAdvisors(prev => prev.filter(a => a.id !== advisor.id));
+                    }}
+                    className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                    <X className="w-4 h-4" /> Ablehnen
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
