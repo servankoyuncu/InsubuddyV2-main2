@@ -47,7 +47,7 @@ export default function BrokerPortal() {
     if (result.success) {
       setSubmitted(true);
     } else {
-      setError('Fehler beim Einreichen. Bitte versuchen Sie es erneut.');
+      setError(result.error || 'Fehler beim Einreichen. Bitte versuchen Sie es erneut.');
     }
   };
 

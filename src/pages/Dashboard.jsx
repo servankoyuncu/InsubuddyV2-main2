@@ -2097,13 +2097,17 @@ function Dashboard() {
       {/* KI-Chat Floating Button */}
       <button
         onClick={() => {
+          if (!isPremium) {
+            setShowPremiumModal(true);
+            return;
+          }
           if (policies.length === 0) {
             alert('Bitte lade zuerst eine Police hoch, bevor du den KI-Assistenten verwendest.');
             return;
           }
-          isPremium ? setShowChat(true) : setShowPremiumModal(true);
+          setShowChat(true);
         }}
-        className={`fixed bottom-24 right-4 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl shadow-indigo-500/40 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform ${policies.length === 0 ? 'opacity-40' : ''}`}
+        className="fixed bottom-24 right-4 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl shadow-indigo-500/40 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform"
       >
         <MessageSquare className="w-6 h-6 text-white" />
         {!isPremium && (
