@@ -2122,7 +2122,7 @@ function Dashboard() {
       {/* KI-Chat Floating Button */}
       <button
         onClick={() => setShowChat(true)}
-        className="fixed bottom-24 right-4 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl shadow-indigo-500/40 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform"
+        className="fixed right-4 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl shadow-indigo-500/40 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform" style={{ bottom: 'max(calc(env(safe-area-inset-bottom) + 90px), 110px)' }}
       >
         <MessageSquare className="w-6 h-6 text-white" />
         {!isPremium && (
