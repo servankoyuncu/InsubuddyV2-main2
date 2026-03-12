@@ -528,17 +528,17 @@ function AdminDashboard() {
             </button>
           </div>
           
-          <div className="flex gap-4 mt-6 border-b border-gray-200">
-            <button onClick={() => setActiveTab('partners')} className={`pb-3 px-2 font-medium text-sm transition-colors ${activeTab === 'partners' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
+          <div className="flex gap-4 mt-6 border-b border-gray-200 overflow-x-auto scrollbar-hide -mx-4 px-4">
+            <button onClick={() => setActiveTab('partners')} className={`pb-3 px-2 font-medium text-sm transition-colors flex-shrink-0 ${activeTab === 'partners' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
               Partner
             </button>
-            <button onClick={() => setActiveTab('advisors')} className={`pb-3 px-2 font-medium text-sm transition-colors ${activeTab === 'advisors' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
+            <button onClick={() => setActiveTab('advisors')} className={`pb-3 px-2 font-medium text-sm transition-colors flex-shrink-0 ${activeTab === 'advisors' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
               Berater
             </button>
-            <button onClick={() => setActiveTab('notifications')} className={`pb-3 px-2 font-medium text-sm transition-colors ${activeTab === 'notifications' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
+            <button onClick={() => setActiveTab('notifications')} className={`pb-3 px-2 font-medium text-sm transition-colors flex-shrink-0 ${activeTab === 'notifications' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
               Benachrichtigungen
             </button>
-            <button onClick={() => setActiveTab('tickets')} className={`pb-3 px-2 font-medium text-sm transition-colors relative ${activeTab === 'tickets' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
+            <button onClick={() => setActiveTab('tickets')} className={`pb-3 px-2 font-medium text-sm transition-colors relative flex-shrink-0 ${activeTab === 'tickets' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
               Tickets
               {tickets.filter(t => t.status === 'open').length > 0 && (
                 <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
@@ -546,11 +546,11 @@ function AdminDashboard() {
                 </span>
               )}
             </button>
-            <button onClick={() => setActiveTab('push')} className={`pb-3 px-2 font-medium text-sm transition-colors flex items-center gap-1.5 ${activeTab === 'push' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
+            <button onClick={() => setActiveTab('push')} className={`pb-3 px-2 font-medium text-sm transition-colors flex items-center gap-1.5 flex-shrink-0 ${activeTab === 'push' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
               <Smartphone className="w-4 h-4" />
               Push senden
             </button>
-            <button onClick={() => setActiveTab('submissions')} className={`pb-3 px-2 font-medium text-sm transition-colors relative ${activeTab === 'submissions' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
+            <button onClick={() => setActiveTab('submissions')} className={`pb-3 px-2 font-medium text-sm transition-colors relative flex-shrink-0 ${activeTab === 'submissions' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
               Einreichungen
               {pendingAdvisors.length > 0 && (
                 <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-orange-500 rounded-full">
@@ -558,7 +558,7 @@ function AdminDashboard() {
                 </span>
               )}
             </button>
-            <button onClick={() => setActiveTab('stakes')} className={`pb-3 px-2 font-medium text-sm transition-colors relative ${activeTab === 'stakes' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
+            <button onClick={() => setActiveTab('stakes')} className={`pb-3 px-2 font-medium text-sm transition-colors relative flex-shrink-0 ${activeTab === 'stakes' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
               $INSU Stakes
               {stakes.filter(s => s.status !== 'refunded' && new Date(s.expires_at) < new Date()).length > 0 && (
                 <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-purple-500 rounded-full">
