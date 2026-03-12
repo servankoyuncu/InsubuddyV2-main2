@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Bot, User, Sparkles, RotateCcw } from 'lucide-react';
+import { Send, Loader2, Bot, User, Sparkles, RotateCcw, Crown } from 'lucide-react';
 import { askPolicyChat } from '../services/chatService';
 
 const SUGGESTED_QUESTIONS = [
@@ -42,7 +42,7 @@ const MessageBubble = ({ message, darkMode }) => {
   );
 };
 
-const PolicyChat = ({ darkMode = false, policies = [] }) => {
+const PolicyChat = ({ darkMode = false, policies = [], isPremium = false, onUpgrade }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -212,52 +212,74 @@ const PolicyChat = ({ darkMode = false, policies = [] }) => {
         </div>
       )}
 
-      {/* Input */}
-      <form onSubmit={handleSubmit} className="flex-shrink-0">
-        <div className={`flex gap-2 items-end rounded-2xl border p-2 ${
-          darkMode
-            ? 'bg-gray-800 border-gray-600 focus-within:border-indigo-500'
-            : 'bg-white border-gray-200 focus-within:border-indigo-400 shadow-sm'
-        } transition-colors`}>
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage(input);
-              }
-            }}
-            placeholder="Stelle eine Frage zu deinen Versicherungen..."
-            rows={1}
-            className={`flex-1 resize-none bg-transparent text-sm outline-none px-2 py-1.5 max-h-32 ${
-              darkMode ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-400'
-            }`}
-            style={{ overflowY: 'auto' }}
-            disabled={isLoading}
-          />
-          <button
-            type="submit"
-            disabled={!input.trim() || isLoading}
-            className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
-              input.trim() && !isLoading
-                ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/30'
-                : darkMode
-                  ? 'bg-gray-700 text-gray-500'
-                  : 'bg-gray-100 text-gray-400'
-            }`}
-          >
-            {isLoading
-              ? <Loader2 className="w-4 h-4 animate-spin" />
-              : <Send className="w-4 h-4" />
-            }
-          </button>
+      {/* Paywall Banner (wenn nicht Premium) */}
+      {!isPremium ? (
+        <div className="flex-shrink-0">
+          <div className={`rounded-2xl border-2 border-dashed border-indigo-300 p-4 text-center ${darkMode ? 'bg-indigo-950/30' : 'bg-indigo-50'}`}>
+            <Crown className="w-6 h-6 text-amber-500 mx-auto mb-2" />
+            <p className={`text-sm font-semibold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              Premium erforderlich
+            </p>
+            <p className={`text-xs mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Hole InsuBuddy Premium um den KI-Assistenten zu nutzen.
+            </p>
+            <button
+              onClick={onUpgrade}
+              className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+            >
+              <Crown className="w-4 h-4" />
+              Premium holen
+            </button>
+          </div>
         </div>
-        <p className={`text-center text-[10px] mt-1.5 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
-          KI-Antworten ersetzen keine Rechtsberatung
-        </p>
-      </form>
+      ) : (
+        /* Input */
+        <form onSubmit={handleSubmit} className="flex-shrink-0">
+          <div className={`flex gap-2 items-end rounded-2xl border p-2 ${
+            darkMode
+              ? 'bg-gray-800 border-gray-600 focus-within:border-indigo-500'
+              : 'bg-white border-gray-200 focus-within:border-indigo-400 shadow-sm'
+          } transition-colors`}>
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage(input);
+                }
+              }}
+              placeholder="Stelle eine Frage zu deinen Versicherungen..."
+              rows={1}
+              className={`flex-1 resize-none bg-transparent text-sm outline-none px-2 py-1.5 max-h-32 ${
+                darkMode ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-400'
+              }`}
+              style={{ overflowY: 'auto' }}
+              disabled={isLoading}
+            />
+            <button
+              type="submit"
+              disabled={!input.trim() || isLoading}
+              className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                input.trim() && !isLoading
+                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/30'
+                  : darkMode
+                    ? 'bg-gray-700 text-gray-500'
+                    : 'bg-gray-100 text-gray-400'
+              }`}
+            >
+              {isLoading
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <Send className="w-4 h-4" />
+              }
+            </button>
+          </div>
+          <p className={`text-center text-[10px] mt-1.5 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
+            KI-Antworten ersetzen keine Rechtsberatung
+          </p>
+        </form>
+      )}
     </div>
   );
 };

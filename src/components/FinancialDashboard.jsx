@@ -1,5 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Crown, Lock } from 'lucide-react';
+
+const PremiumSection = ({ isPremium, onUpgrade, teaser, darkMode, children }) => {
+  if (isPremium) return <>{children}</>;
+  return (
+    <div className="relative rounded-lg overflow-hidden">
+      <div className="blur-sm pointer-events-none select-none opacity-50">
+        {children}
+      </div>
+      <div className={`absolute inset-0 flex flex-col items-center justify-center gap-3 ${darkMode ? 'bg-gray-900/80' : 'bg-white/80'} backdrop-blur-sm rounded-lg`}>
+        <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+          <Crown className="w-5 h-5 text-amber-500" />
+        </div>
+        {teaser && (
+          <p className={`text-sm font-semibold text-center px-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            {teaser}
+          </p>
+        )}
+        <button
+          onClick={onUpgrade}
+          className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity flex items-center gap-2"
+        >
+          <Crown className="w-4 h-4" />
+          Premium holen
+        </button>
+      </div>
+    </div>
+  );
+};
 import {
   calculateCurrentSnapshot,
   getFinancialHistory,
@@ -13,7 +41,7 @@ import ExpenseTimeline from './financial/ExpenseTimeline';
 import SavingsOpportunities from './financial/SavingsOpportunities';
 import BudgetPlanner from './financial/BudgetPlanner';
 
-const FinancialDashboard = ({ policies, darkMode, language, currentUser, currencySymbol = 'CHF' }) => {
+const FinancialDashboard = ({ policies, darkMode, language, currentUser, currencySymbol = 'CHF', isPremium = false, onUpgrade }) => {
   const [snapshot, setSnapshot] = useState(null);
   const [history, setHistory] = useState([]);
   const [trend, setTrend] = useState({ percentage: 0, direction: 'neutral', amount: 0 });
@@ -244,38 +272,70 @@ const FinancialDashboard = ({ policies, darkMode, language, currentUser, currenc
         currencySymbol={currencySymbol}
       />
 
-      {/* Two-column grid: Breakdown & Budget */}
+      {/* Two-column grid: Breakdown & Budget — Premium locked */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ExpenseBreakdown
-          snapshot={snapshot}
+        <PremiumSection
+          isPremium={isPremium}
+          onUpgrade={onUpgrade}
           darkMode={darkMode}
-          translations={t}
-          currencySymbol={currencySymbol}
-        />
-        <BudgetPlanner
-          currentSpending={snapshot?.totalMonthly || 0}
-          userId={currentUser?.id}
+          teaser="Kostenverteilung nach Versicherungstyp"
+        >
+          <ExpenseBreakdown
+            snapshot={snapshot}
+            darkMode={darkMode}
+            translations={t}
+            currencySymbol={currencySymbol}
+          />
+        </PremiumSection>
+        <PremiumSection
+          isPremium={isPremium}
+          onUpgrade={onUpgrade}
           darkMode={darkMode}
-          translations={t}
-          currencySymbol={currencySymbol}
-        />
+          teaser="Budget-Planer mit Benachrichtigungen"
+        >
+          <BudgetPlanner
+            currentSpending={snapshot?.totalMonthly || 0}
+            userId={currentUser?.id}
+            darkMode={darkMode}
+            translations={t}
+            currencySymbol={currencySymbol}
+          />
+        </PremiumSection>
       </div>
 
-      {/* Timeline Chart */}
-      <ExpenseTimeline
-        history={history}
+      {/* Timeline Chart — Premium locked */}
+      <PremiumSection
+        isPremium={isPremium}
+        onUpgrade={onUpgrade}
         darkMode={darkMode}
-        translations={t}
-        currencySymbol={currencySymbol}
-      />
+        teaser="Kostenverlauf über die letzten Monate"
+      >
+        <ExpenseTimeline
+          history={history}
+          darkMode={darkMode}
+          translations={t}
+          currencySymbol={currencySymbol}
+        />
+      </PremiumSection>
 
-      {/* Savings Opportunities */}
-      <SavingsOpportunities
-        recommendations={recommendations}
+      {/* Savings Opportunities — Premium locked mit Teaser-Betrag */}
+      <PremiumSection
+        isPremium={isPremium}
+        onUpgrade={onUpgrade}
         darkMode={darkMode}
-        translations={t}
-        currencySymbol={currencySymbol}
-      />
+        teaser={
+          recommendations.length > 0
+            ? `Du könntest bis zu ${currencySymbol} ${recommendations.reduce((s, r) => s + (r.savingsAmount || 0), 0).toFixed(0)}/Jahr sparen`
+            : 'Einsparpotenzial bei deinen Versicherungen entdecken'
+        }
+      >
+        <SavingsOpportunities
+          recommendations={recommendations}
+          darkMode={darkMode}
+          translations={t}
+          currencySymbol={currencySymbol}
+        />
+      </PremiumSection>
     </div>
   );
 };

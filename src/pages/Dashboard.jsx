@@ -1460,9 +1460,28 @@ function Dashboard() {
               <div className="text-sm opacity-90">{t('annual_premium')}</div>
             </div>
 
+            {/* Policy Limit Banner für Free User */}
+            {!isPremium && policies.length >= 2 && (
+              <div className={`mb-3 p-3 rounded-xl border-2 border-dashed border-amber-300 text-center ${darkMode ? 'bg-amber-950/30' : 'bg-amber-50'}`}>
+                <Crown className="w-5 h-5 text-amber-500 mx-auto mb-1" />
+                <p className={`text-xs font-semibold ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>
+                  Limit erreicht (2/2 Policen)
+                </p>
+                <p className={`text-xs mt-0.5 ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>
+                  Premium holen für unbegrenzte Policen
+                </p>
+              </div>
+            )}
+
             {/* Smart Import Button - Premium Feature */}
             <button
-              onClick={() => setShowPolicyUploader(true)}
+              onClick={() => {
+                if (!isPremium && policies.length >= 2) {
+                  setShowPremiumModal(true);
+                } else {
+                  setShowPolicyUploader(true);
+                }
+              }}
               className={`w-full py-3 rounded-lg font-medium flex items-center justify-center gap-2 mb-3 relative ${
                 darkMode
                   ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700'
@@ -1471,18 +1490,22 @@ function Dashboard() {
             >
               <Sparkles className="w-5 h-5" />
               Smart Import (PDF)
-              {/* PRO Badge deaktiviert - Premium temporär ausgesetzt
-              {!isPremium && (
+              {!isPremium && policies.length >= 2 && (
                 <span className="absolute -top-2 -right-2 bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                   <Crown className="w-3 h-3" />
                   PRO
                 </span>
               )}
-              */}
             </button>
 
             <button
-              onClick={() => setShowAddPolicy(true)}
+              onClick={() => {
+                if (!isPremium && policies.length >= 2) {
+                  setShowPremiumModal(true);
+                } else {
+                  setShowAddPolicy(true);
+                }
+              }}
               className={`w-full py-3 rounded-lg font-medium flex items-center justify-center gap-2 ${
                 darkMode
                   ? 'bg-gray-700 hover:bg-gray-600 text-white'
@@ -1702,6 +1725,8 @@ function Dashboard() {
               language={language}
               currentUser={currentUser}
               currencySymbol={currencySymbol}
+              isPremium={isPremium}
+              onUpgrade={() => setShowPremiumModal(true)}
             />
           </Suspense>
         )}
@@ -2096,17 +2121,7 @@ function Dashboard() {
 
       {/* KI-Chat Floating Button */}
       <button
-        onClick={() => {
-          if (!isPremium) {
-            setShowPremiumModal(true);
-            return;
-          }
-          if (policies.length === 0) {
-            alert('Bitte lade zuerst eine Police hoch, bevor du den KI-Assistenten verwendest.');
-            return;
-          }
-          setShowChat(true);
-        }}
+        onClick={() => setShowChat(true)}
         className="fixed bottom-24 right-4 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl shadow-indigo-500/40 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform"
       >
         <MessageSquare className="w-6 h-6 text-white" />
@@ -2139,7 +2154,12 @@ function Dashboard() {
             {/* Chat Content */}
             <div className="flex-1 overflow-y-auto px-4 pt-4">
               <Suspense fallback={<div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" /></div>}>
-                <PolicyChat darkMode={darkMode} policies={policies} />
+                <PolicyChat
+                  darkMode={darkMode}
+                  policies={policies}
+                  isPremium={isPremium}
+                  onUpgrade={() => { setShowChat(false); setShowPremiumModal(true); }}
+                />
               </Suspense>
             </div>
           </div>
