@@ -27,6 +27,7 @@ const PremiumModal = lazy(() => import('../components/PremiumModal'));
 const PDFViewer = lazy(() => import('../components/PDFViewer'));
 const PolicyChat = lazy(() => import('../components/PolicyChat'));
 const StakingModal = lazy(() => import('../components/StakingModal'));
+const MintPolicyModal = lazy(() => import('../components/MintPolicyModal'));
 
 // Deckungen-Templates mit detaillierten Beschreibungen
 const coverageTemplates = {
@@ -332,6 +333,8 @@ function Dashboard() {
   const [showChat, setShowChat] = useState(false);
   const [showStakingModal, setShowStakingModal] = useState(false);
   const [activeStake, setActiveStake] = useState(null);
+  const [mintingPolicy, setMintingPolicy] = useState(null);
+  const [policyNfts, setPolicyNfts] = useState({});
   const [selectedPDF, setSelectedPDF] = useState(null);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showImageViewer, setShowImageViewer] = useState(false);
@@ -448,6 +451,16 @@ function Dashboard() {
         try {
           const userPolicies = await getUserPolicies(currentUser.id);
           setPolicies(userPolicies);
+          // NFT-Status für alle Policen laden
+          const { getPolicyNFT } = await import('../services/nftService');
+          const nftMap = {};
+          await Promise.all(userPolicies.map(async (p) => {
+            if (p.id) {
+              const nft = await getPolicyNFT(p.id);
+              if (nft) nftMap[p.id] = nft;
+            }
+          }));
+          setPolicyNfts(nftMap);
         } catch (error) {
           console.error('Fehler beim Laden der Policen:', error);
         }
@@ -1008,6 +1021,22 @@ function Dashboard() {
               if (stakes.length > 0) setActiveStake(stakes[0]);
             }}
             darkMode={darkMode}
+          />
+        </Suspense>
+      )}
+
+      {/* NFT / IPFS Zertifikat Modal */}
+      {mintingPolicy && (
+        <Suspense fallback={null}>
+          <MintPolicyModal
+            policy={mintingPolicy}
+            userId={currentUser?.id}
+            darkMode={darkMode}
+            onClose={() => setMintingPolicy(null)}
+            onSuccess={(result) => {
+              setPolicyNfts(prev => ({ ...prev, [mintingPolicy.id]: result }));
+              setMintingPolicy(null);
+            }}
           />
         </Suspense>
       )}
@@ -1579,8 +1608,37 @@ function Dashboard() {
                         >
                           <X className="w-4 h-4" />
                         </button>
+                        {currentUser?.user_metadata?.wallet_address && (
+                          <button
+                            onClick={() => setMintingPolicy(p)}
+                            title="Als Zertifikat auf IPFS speichern"
+                            className={`p-2 rounded-lg transition-colors ${
+                              policyNfts[p.id]
+                                ? 'text-violet-500 bg-violet-50'
+                                : darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-400 hover:bg-gray-100'
+                            }`}
+                          >
+                            <Sparkles className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
+                    {policyNfts[p.id] && (
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700">
+                          <Sparkles className="w-3 h-3" />
+                          IPFS zertifiziert
+                        </span>
+                        <a
+                          href={policyNfts[p.id].ipfs_uri}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-violet-500 hover:underline"
+                        >
+                          ansehen ↗
+                        </a>
+                      </div>
+                    )}
                     <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{p.company}</div>
                     <div className={`text-sm mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{p.name}</div>
                     <div className={`text-lg font-semibold mt-2 text-blue-600`}>{p.premium}</div>
