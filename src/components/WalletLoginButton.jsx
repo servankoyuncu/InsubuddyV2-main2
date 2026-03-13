@@ -10,13 +10,25 @@ const SUPABASE_FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export default function WalletLoginButton({ onSuccess, darkMode = false }) {
-  const { publicKey, connected, connecting, connect, disconnect, select, wallets, signMessage } = useWallet();
+  const { publicKey, connected, connecting, connect, disconnect, select, wallet, wallets, signMessage } = useWallet();
   const { loginWithWallet } = useAuth();
   const { isNative } = useStoreKit();
 
   const [step, setStep] = useState('idle'); // idle | select | signing | loading | error
   const [error, setError] = useState('');
   const [showWalletPicker, setShowWalletPicker] = useState(false);
+  const [pendingConnect, setPendingConnect] = useState(false);
+
+  // Connect once wallet adapter is actually selected
+  useEffect(() => {
+    if (pendingConnect && wallet?.adapter) {
+      setPendingConnect(false);
+      connect().catch(() => {
+        setError('Verbindung fehlgeschlagen. Bitte versuche es erneut.');
+        setStep('idle');
+      });
+    }
+  }, [wallet?.adapter.name, pendingConnect]);
 
   // Once connected, automatically trigger signing
   useEffect(() => {
@@ -42,10 +54,7 @@ export default function WalletLoginButton({ onSuccess, darkMode = false }) {
     setShowWalletPicker(false);
     setStep('select');
     select(walletAdapter.adapter.name);
-    connect().catch((err) => {
-      setError('Verbindung fehlgeschlagen. Bitte versuche es erneut.');
-      setStep('idle');
-    });
+    setPendingConnect(true); // connect() wird via useEffect aufgerufen sobald Adapter bereit ist
   };
 
   const handleSign = async () => {
