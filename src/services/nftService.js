@@ -8,16 +8,22 @@ import {
 import { supabase } from '../supabase';
 
 const INSUBUDDY_WALLET = new PublicKey('8YorNCXpJBDpjoj9jnyvDdMBk4Acqd7A6XWm24wGCrU7');
-const INSUBUDDY_FEE_SOL = 0.02;
+const INSUBUDDY_FEE_SOL = 0.03;
 const NETWORK_FEE_SOL = 0.01;
 export const TOTAL_MINT_FEE_SOL = INSUBUDDY_FEE_SOL + NETWORK_FEE_SOL;
 
-const RPC_ENDPOINTS = [
-  'https://rpc.ankr.com/solana',
-  'https://api.mainnet-beta.solana.com',
-];
+// Set to 'devnet' for testing, 'mainnet-beta' for production
+export const NFT_NETWORK = import.meta.env.VITE_NFT_NETWORK || 'devnet';
 
-const getConnection = () => new Connection(RPC_ENDPOINTS[0], 'confirmed');
+const RPC_ENDPOINTS = {
+  devnet: 'https://api.devnet.solana.com',
+  'mainnet-beta': 'https://rpc.ankr.com/solana',
+};
+
+const getConnection = () => new Connection(RPC_ENDPOINTS[NFT_NETWORK] || RPC_ENDPOINTS['devnet'], 'confirmed');
+
+export const getSolanaExplorerUrl = (signature, type = 'tx') =>
+  `https://explorer.solana.com/${type}/${signature}${NFT_NETWORK === 'devnet' ? '?cluster=devnet' : ''}`;
 
 /**
  * Upload policy metadata to IPFS via Pinata

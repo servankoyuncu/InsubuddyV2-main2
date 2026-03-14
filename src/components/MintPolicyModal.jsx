@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { X, Sparkles, CheckCircle, Loader2, ExternalLink, AlertCircle } from 'lucide-react';
+import { X, Sparkles, CheckCircle, Loader2, ExternalLink, AlertCircle, FlaskConical } from 'lucide-react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { mintPolicyCertificate, TOTAL_MINT_FEE_SOL } from '../services/nftService';
+import { mintPolicyCertificate, TOTAL_MINT_FEE_SOL, NFT_NETWORK, getSolanaExplorerUrl } from '../services/nftService';
 
 const STEPS = {
   confirm: 'confirm',
@@ -47,7 +47,14 @@ export default function MintPolicyModal({ policy, userId, onClose, onSuccess, da
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <h2 className={`font-semibold ${text}`}>Police zertifizieren</h2>
+            <div>
+              <h2 className={`font-semibold ${text}`}>Police zertifizieren</h2>
+              {NFT_NETWORK === 'devnet' && (
+                <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full mt-0.5">
+                  <FlaskConical className="w-3 h-3" /> Devnet (Test)
+                </span>
+              )}
+            </div>
           </div>
           <button onClick={onClose} className={`p-2 rounded-xl ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}>
             <X className="w-4 h-4" />
@@ -73,7 +80,7 @@ export default function MintPolicyModal({ policy, userId, onClose, onSuccess, da
                 <p className={`text-xs font-semibold uppercase tracking-wide ${sub}`}>Kosten</p>
                 <div className="flex justify-between text-sm">
                   <span className={sub}>InsuBuddy Gebühr</span>
-                  <span className={text}>0.02 SOL</span>
+                  <span className={text}>0.03 SOL</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className={sub}>Netzwerkgebühr (ca.)</span>
@@ -155,12 +162,12 @@ export default function MintPolicyModal({ policy, userId, onClose, onSuccess, da
                 Zertifikat auf IPFS ansehen
               </a>
               <a
-                href={`https://solscan.io/tx/${result.txSignature}`}
+                href={getSolanaExplorerUrl(result.txSignature)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`flex items-center justify-center gap-2 w-full py-2.5 text-sm ${sub} hover:underline`}
               >
-                Transaktion auf Solscan ansehen ↗
+                Transaktion auf Explorer ansehen ↗
               </a>
               <button
                 onClick={onClose}
