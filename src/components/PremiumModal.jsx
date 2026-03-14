@@ -12,6 +12,7 @@ const PremiumModal = ({
 }) => {
   const [selectedPlan, setSelectedPlan] = useState('monthly');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [webPaymentInfo, setWebPaymentInfo] = useState(false);
 
   const prices = getPremiumPrices();
   const features = getPremiumFeatures();
@@ -42,16 +43,8 @@ const PremiumModal = ({
           onClose();
         }
       } else {
-        // Web/dev: demo activation via Supabase
-        const months = selectedPlan === 'yearly' ? 12 : 1;
-        const result = await activatePremium(userId, months);
-
-        if (result.success) {
-          onPremiumActivated?.();
-          onClose();
-        } else {
-          alert('Fehler beim Aktivieren: ' + result.error);
-        }
+        // Web: Stripe noch nicht integriert — auf App verweisen
+        setWebPaymentInfo(true);
       }
     } catch (error) {
       console.error('Fehler:', error);
@@ -216,6 +209,14 @@ const PremiumModal = ({
               )}
             </button>
           </div>
+
+          {/* Web: App-Hinweis */}
+          {webPaymentInfo && (
+            <div className="mb-4 p-4 rounded-xl bg-blue-50 border border-blue-200 text-sm text-blue-800 text-center">
+              <p className="font-semibold mb-1">Abo über App abschliessen</p>
+              <p>Lade die InsuBuddy App herunter und abonniere Premium direkt über den App Store oder Google Play.</p>
+            </div>
+          )}
 
           {/* Subscribe Button */}
           <button
