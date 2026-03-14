@@ -1630,7 +1630,7 @@ function Dashboard() {
                           IPFS zertifiziert
                         </span>
                         <a
-                          href={policyNfts[p.id].ipfs_uri}
+                          href={policyNfts[p.id].ipfsUri || policyNfts[p.id].ipfs_uri}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs text-violet-500 hover:underline"
