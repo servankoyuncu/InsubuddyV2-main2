@@ -29,7 +29,7 @@ export const getSolanaExplorerUrl = (signature, type = 'tx') =>
  * Upload policy metadata to IPFS via Pinata
  */
 export const uploadPolicyMetadata = async (policy, walletAddress) => {
-  const pinataJwt = import.meta.env.VITE_PINATA_JWT;
+  const pinataJwt = import.meta.env.VITE_PINATA_JWT || import.meta.env.VITE_PINATA_API_KEY;
   console.log('[Pinata] JWT first 20 chars:', pinataJwt?.substring(0, 20));
   console.log('[Pinata] JWT length:', pinataJwt?.length);
 
