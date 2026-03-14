@@ -30,6 +30,8 @@ export const getSolanaExplorerUrl = (signature, type = 'tx') =>
  */
 export const uploadPolicyMetadata = async (policy, walletAddress) => {
   const pinataJwt = import.meta.env.VITE_PINATA_JWT;
+  console.log('[Pinata] JWT first 20 chars:', pinataJwt?.substring(0, 20));
+  console.log('[Pinata] JWT length:', pinataJwt?.length);
 
   const metadata = {
     name: `${policy.type || 'Versicherung'} – InsuBuddy`,
