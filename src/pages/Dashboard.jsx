@@ -16,7 +16,7 @@ import { checkPremiumStatus, PREMIUM_FEATURES } from '../services/premiumService
 import { useStoreKit } from '../hooks/useStoreKit';
 import { checkInsuBalance, shortenAddress } from '../services/solanaService';
 import { getActiveStakes } from '../services/stakingService';
-import { getVerifyUrl } from '../services/blockchainService';
+import { getVerifyUrl, mintPolicyCertificate } from '../services/blockchainService';
 import { createTicket, getUserTickets } from '../services/ticketService';
 import { getOrCreateReferralCode, getReferralLink, getUserReferralStats } from '../services/referralService';
 import { getFeaturedAdvisor, getActiveAdvisors } from '../services/advisorService';
@@ -425,6 +425,12 @@ function Dashboard() {
       const newPolicy = await addPolicy(currentUser.id, policyData, file);
       setPolicies([newPolicy, ...policies]);
       setShowPolicyUploader(false);
+      // NFT wird in policyservice auto-geminted — nach kurzer Verzögerung Badge laden
+      setTimeout(async () => {
+        const { getPolicyNFT } = await import('../services/nftService');
+        const nft = await getPolicyNFT(newPolicy.id);
+        if (nft) setPolicyNfts(prev => ({ ...prev, [newPolicy.id]: nft }));
+      }, 5000);
     } catch (error) {
       console.error('Fehler beim Speichern der Police:', error);
       alert('Fehler beim Speichern der Police');
@@ -783,8 +789,15 @@ function Dashboard() {
       };
 
       // FIX: Hier muss currentUser.id stehen (nicht .uid)
-      await addPolicy(currentUser.id, policyData, uploadedFile);
-      
+      const newPolicy = await addPolicy(currentUser.id, policyData, uploadedFile);
+
+      // NFT wird in policyservice auto-geminted — nach kurzer Verzögerung Badge laden
+      setTimeout(async () => {
+        const { getPolicyNFT } = await import('../services/nftService');
+        const nft = await getPolicyNFT(newPolicy.id);
+        if (nft) setPolicyNfts(prev => ({ ...prev, [newPolicy.id]: nft }));
+      }, 5000);
+
       // Policen neu laden (auch mit .id)
       const updatedPolicies = await getUserPolicies(currentUser.id);
       setPolicies(updatedPolicies);
@@ -1609,19 +1622,27 @@ function Dashboard() {
                         >
                           <X className="w-4 h-4" />
                         </button>
-                        {currentUser?.user_metadata?.wallet_address && (
-                          <button
-                            onClick={() => setMintingPolicy(p)}
-                            title="Als Zertifikat auf IPFS speichern"
-                            className={`p-2 rounded-lg transition-colors ${
-                              policyNfts[p.id]
-                                ? 'text-violet-500 bg-violet-50'
-                                : darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-400 hover:bg-gray-100'
-                            }`}
-                          >
-                            <Sparkles className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => {
+                            if (policyNfts[p.id]) {
+                              const url = getVerifyUrl(p.id);
+                              navigator.clipboard?.writeText(url).catch(() => {});
+                              alert('Verifizierungslink kopiert!');
+                            } else {
+                              mintPolicyCertificate(p.id, currentUser.id, p).then(result => {
+                                if (result) setPolicyNfts(prev => ({ ...prev, [p.id]: result }));
+                              });
+                            }
+                          }}
+                          title={policyNfts[p.id] ? 'Nachweis-Link kopieren' : 'Zertifikat erstellen'}
+                          className={`p-2 rounded-lg transition-colors ${
+                            policyNfts[p.id]
+                              ? 'text-violet-500 bg-violet-50'
+                              : darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-400 hover:bg-gray-100'
+                          }`}
+                        >
+                          <Sparkles className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                     {policyNfts[p.id] && (
