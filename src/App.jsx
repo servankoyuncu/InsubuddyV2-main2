@@ -17,6 +17,7 @@ const ShareView = lazy(() => import('./pages/ShareView'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Terms = lazy(() => import('./pages/Terms'));
 const BrokerPortal = lazy(() => import('./pages/BrokerPortal'));
+const VerifyPage = lazy(() => import('./pages/VerifyPage'));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -125,6 +126,7 @@ function App() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/broker" element={<BrokerPortal />} />
+          <Route path="/verify/:policyId" element={<VerifyPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </Suspense>

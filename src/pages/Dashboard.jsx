@@ -16,6 +16,7 @@ import { checkPremiumStatus, PREMIUM_FEATURES } from '../services/premiumService
 import { useStoreKit } from '../hooks/useStoreKit';
 import { checkInsuBalance, shortenAddress } from '../services/solanaService';
 import { getActiveStakes } from '../services/stakingService';
+import { getVerifyUrl } from '../services/blockchainService';
 import { createTicket, getUserTickets } from '../services/ticketService';
 import { getOrCreateReferralCode, getReferralLink, getUserReferralStats } from '../services/referralService';
 import { getFeaturedAdvisor, getActiveAdvisors } from '../services/advisorService';
@@ -1624,19 +1625,26 @@ function Dashboard() {
                       </div>
                     </div>
                     {policyNfts[p.id] && (
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700">
-                          <Sparkles className="w-3 h-3" />
-                          IPFS zertifiziert
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                          <CheckCircle className="w-3 h-3" />
+                          Verifiziert
                         </span>
-                        <a
-                          href={policyNfts[p.id].ipfsUri || policyNfts[p.id].ipfs_uri}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-violet-500 hover:underline"
+                        <button
+                          onClick={() => {
+                            const url = getVerifyUrl(p.id);
+                            navigator.clipboard?.writeText(url).then(() => {
+                              alert('Verifizierungslink kopiert!');
+                            }).catch(() => {
+                              alert(url);
+                            });
+                          }}
+                          className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 hover:underline"
+                          title="Nachweis-Link kopieren"
                         >
-                          ansehen ↗
-                        </a>
+                          <ExternalLink className="w-3 h-3" />
+                          Nachweis teilen
+                        </button>
                       </div>
                     )}
                     <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{p.company}</div>

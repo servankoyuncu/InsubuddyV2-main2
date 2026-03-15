@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { saveFinancialSnapshot } from './financialService';
+import { mintPolicyCertificate } from './blockchainService';
 
 const fileToBase64 = (file) => {
   return new Promise((resolve, reject) => {
@@ -58,6 +59,17 @@ export const addPolicy = async (userId, policyData, file = null) => {
       .single();
 
     if (error) throw error;
+
+    // Auto-mint certificate (invisible blockchain — fire and forget)
+    if (data?.id) {
+      mintPolicyCertificate(data.id, userId, {
+        type: policyData.type,
+        company: policyData.company,
+        premium: policyData.premium,
+        expiryDate: policyData.expiryDate,
+      }).catch(() => {/* non-critical */});
+    }
+
     return data;
   } catch (error) {
     console.error('Fehler beim Hinzufügen der Police:', error);
