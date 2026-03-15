@@ -63,8 +63,8 @@ async function fundWalletIfNeeded(
   connection: Connection,
   funderKeypair: Keypair,
   targetPublicKey: PublicKey,
-  minBalance = 0.005 * LAMPORTS_PER_SOL,
-  fundAmount = 0.01 * LAMPORTS_PER_SOL,
+  minBalance = 0.0001 * LAMPORTS_PER_SOL,
+  fundAmount = 0.001 * LAMPORTS_PER_SOL,
 ): Promise<void> {
   try {
     const balance = await connection.getBalance(targetPublicKey);
