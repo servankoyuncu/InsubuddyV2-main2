@@ -5,6 +5,8 @@ import {
   TransactionInstruction,
   PublicKey,
   sendAndConfirmTransaction,
+  SystemProgram,
+  LAMPORTS_PER_SOL,
 } from 'npm:@solana/web3.js@1.95.3';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -18,7 +20,7 @@ const MEMO_PROGRAM_ID = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfc
 
 const RPC_ENDPOINTS: Record<string, string> = {
   devnet: 'https://api.devnet.solana.com',
-  'mainnet-beta': 'https://rpc.ankr.com/solana',
+  'mainnet-beta': 'https://api.mainnet-beta.solana.com',
 };
 
 async function deriveEncryptionKey(secret: string): Promise<CryptoKey> {
@@ -57,27 +59,53 @@ async function uploadToIPFS(metadata: object, pinataJwt: string, name: string): 
   return IpfsHash;
 }
 
+async function fundWalletIfNeeded(
+  connection: Connection,
+  funderKeypair: Keypair,
+  targetPublicKey: PublicKey,
+  minBalance = 0.005 * LAMPORTS_PER_SOL,
+  fundAmount = 0.01 * LAMPORTS_PER_SOL,
+): Promise<void> {
+  try {
+    const balance = await connection.getBalance(targetPublicKey);
+    if (balance < minBalance) {
+      const tx = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: funderKeypair.publicKey,
+          toPubkey: targetPublicKey,
+          lamports: fundAmount,
+        })
+      );
+      await sendAndConfirmTransaction(connection, tx, [funderKeypair], { commitment: 'confirmed' });
+      console.log(`Funded ${targetPublicKey.toBase58()} with 0.01 SOL`);
+    }
+  } catch (err) {
+    console.error('Funding failed (non-critical):', err);
+  }
+}
+
 async function sendMemoTransaction(
   connection: Connection,
   keypair: Keypair,
-  memo: string
+  memo: string,
+  funderKeypair: Keypair | null = null,
 ): Promise<string | null> {
   try {
-    // On devnet, request airdrop if needed
     const network = Deno.env.get('NFT_NETWORK') || 'devnet';
     if (network === 'devnet') {
       try {
         const balance = await connection.getBalance(keypair.publicKey);
         if (balance < 5000) {
-          await connection.requestAirdrop(keypair.publicKey, 100_000_000); // 0.1 SOL
-          // Wait for airdrop confirmation
+          await connection.requestAirdrop(keypair.publicKey, 100_000_000);
           await new Promise(resolve => setTimeout(resolve, 3000));
         }
       } catch (_e) {
-        // Airdrop failed, skip on-chain tx
         console.log('Airdrop failed, skipping on-chain transaction');
         return null;
       }
+    } else if (funderKeypair) {
+      // Mainnet: fund from master wallet if balance too low
+      await fundWalletIfNeeded(connection, funderKeypair, keypair.publicKey);
     }
 
     const memoInstruction = new TransactionInstruction({
@@ -117,6 +145,18 @@ Deno.serve(async (req) => {
     const walletEncryptionKey = Deno.env.get('WALLET_ENCRYPTION_KEY') ?? 'fallback-key-change-in-prod';
     const pinataJwt = Deno.env.get('PINATA_JWT') || Deno.env.get('VITE_PINATA_JWT') || '';
     const network = Deno.env.get('NFT_NETWORK') || 'devnet';
+    const funderPrivateKeyBase58 = Deno.env.get('FUNDER_WALLET_PRIVATE_KEY') || '';
+
+    // Load funder (master) wallet if configured
+    let funderKeypair: Keypair | null = null;
+    if (funderPrivateKeyBase58) {
+      try {
+        const { default: bs58 } = await import('npm:bs58@6');
+        funderKeypair = Keypair.fromSecretKey(bs58.decode(funderPrivateKeyBase58));
+      } catch (e) {
+        console.error('Failed to load funder wallet:', e);
+      }
+    }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false }
@@ -223,7 +263,7 @@ Deno.serve(async (req) => {
     // Send on-chain memo transaction (best-effort)
     const connection = new Connection(RPC_ENDPOINTS[network] || RPC_ENDPOINTS['devnet'], 'confirmed');
     const memoText = `InsuBuddy:${policyId}:${certId}`;
-    const txSignature = await sendMemoTransaction(connection, keypair, memoText);
+    const txSignature = await sendMemoTransaction(connection, keypair, memoText, funderKeypair);
 
     // Save certificate to database
     const { error: insertError } = await adminClient.from('policy_nfts').insert({
