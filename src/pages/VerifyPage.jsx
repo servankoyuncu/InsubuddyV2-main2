@@ -158,10 +158,10 @@ export default function VerifyPage() {
               <span className="text-gray-500">Ausgestellt am</span>
               <span className="font-medium text-gray-900">{mintedDate}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex flex-col gap-1">
               <span className="text-gray-500">Wallet-Adresse</span>
-              <span className="font-mono text-xs text-gray-700">
-                {shortenAddress(cert?.wallet_address)}
+              <span className="font-mono text-xs text-gray-700 break-all">
+                {cert?.wallet_address || '–'}
               </span>
             </div>
             <div className="flex justify-between">
